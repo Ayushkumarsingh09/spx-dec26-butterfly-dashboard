@@ -2,6 +2,8 @@
 
 Live: https://spx-dec26-butterfly-dashboard.vercel.app
 
+The header links to the [60-DTE smile](smile.html) view, rebuilt from the SPX 60-DTE Smile Analysis lab (OTM IV by delta, 25 Sep and 28 Sep 2026).
+
 Offline dashboard for fixed-strike SPX butterflies on the 18 December 2026 expiry. Move the spot, vol, skew and wing sliders and every chart and table reprices immediately.
 
 Open `index.html` in a browser. Market data is bundled in `js/data.js`, so the page does not need a server and does not send anything off the machine.
@@ -31,6 +33,7 @@ Flat vol replaces the fitted smile with one number (default 12.87%, the ATM vol)
 | `js/data.js` | Data bundle the page loads |
 | `data/*.json` | Same data, readable |
 | `js/vendor/d3.min.js` | D3 7.9.0 |
+| `smile.html` | 60-DTE smile view linked from the header |
 
 Saved comparison curves live only in the page session (up to six). Double-click a slider to restore its default.
 

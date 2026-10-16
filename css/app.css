@@ -87,6 +87,70 @@ html, body {
 }
 .fx-foot a { color: var(--color-fg); }
 
+.fx-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.fx-nav a {
+  font-size: 12px;
+  text-decoration: none;
+  color: var(--color-fg-muted);
+  border: 1px solid var(--color-border-line);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.fx-nav a[aria-current="page"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+
+body.s60-page, body.s60-page #dash-root { background: #fff; color: #31333f; }
+.s60 { display: flex; flex-direction: column; gap: 16px; color: #31333f; }
+.s60 h1 { font-family: "Source Sans 3", "Segoe UI", sans-serif; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; margin: 0; color: #262730; }
+.s60 h2 { font-size: 26px; font-weight: 600; margin: 8px 0 4px; color: #262730; }
+.s60 h3 { font-size: 18px; font-weight: 600; margin: 0 0 8px; color: #262730; }
+.s60-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.s60-btn {
+  font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 8px;
+  border: 1px solid #d6d6d8; background: #fff; color: #31333f; cursor: default;
+}
+.s60-btn:disabled { color: #b0b0b5; background: #f8f8f9; }
+.s60-controls { display: grid; grid-template-columns: 1.6fr 0.8fr 0.7fr; gap: 16px; }
+@media (max-width: 800px) { .s60-controls { grid-template-columns: 1fr; } }
+.s60-label { font-size: 14px; margin-bottom: 4px; color: #31333f; }
+.s60-field {
+  min-height: 40px; border-radius: 8px; background: #f0f2f6; display: flex; align-items: center;
+  gap: 6px; padding: 6px 10px; flex-wrap: wrap;
+}
+.s60-chip { background: #ff4b4b; color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 14px; }
+.s60-value { font-size: 14px; color: #31333f; }
+.s60-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #e6e6e8; }
+.s60-tabs button {
+  font: inherit; font-size: 14px; background: transparent; border: 0; border-bottom: 2px solid transparent;
+  padding: 8px 12px; color: #31333f; cursor: pointer; margin-bottom: -1px;
+}
+.s60-tabs button[aria-selected="true"] { color: #ff4b4b; border-bottom-color: #ff4b4b; }
+.s60-panel { display: none; }
+.s60-panel.on { display: block; }
+.s60-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 640px; }
+.s60-metric .lbl { font-size: 14px; color: #31333f; }
+.s60-metric .val { font-size: 32px; font-weight: 600; line-height: 1.15; }
+.s60-delta { display: inline-flex; align-items: center; gap: 4px; color: #ff4b4b; background: #fff; border: 1px solid #ffd0d0; border-radius: 999px; font-size: 14px; padding: 1px 8px; }
+.s60-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 900px) { .s60-grid, .s60-metrics { grid-template-columns: 1fr; } }
+.s60-card { background: #fff; min-width: 0; }
+.s60-chart { position: relative; min-height: 320px; }
+.s60-chart svg { display: block; overflow: visible; }
+.s60-note { font-size: 14px; color: #31333f; margin: 8px 0; }
+.s60-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 8px 0 16px; }
+.s60-kpi { background: #f8f9fb; border-radius: 8px; padding: 12px 14px; }
+.s60-kpi .lbl { font-size: 13px; color: #555; }
+.s60-kpi .val { font-size: 22px; font-weight: 600; }
+.s60-kpi .sub { font-size: 13px; color: #ff4b4b; }
+.s60-kpi .sub.up { color: #0e8a16; }
+.s60 table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.s60 th, .s60 td { text-align: right; padding: 6px 8px; border-bottom: 1px solid #eee; }
+.s60 th:first-child, .s60 td:first-child { text-align: left; }
+.s60 th { color: #666; font-weight: 600; position: sticky; top: 0; background: #fff; }
+.s60 .up { color: #0e8a16; } .s60 .dn { color: #d62728; }
+.s60-scroll { max-height: 420px; overflow: auto; border: 1px solid #eee; border-radius: 8px; }
+.s60-legend { display: flex; gap: 14px; font-size: 13px; color: #444; margin-bottom: 6px; }
+.s60-legend i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; }
+
 .fx {
   font-family: var(--font-anthropic-sans);
   color: var(--color-fg);
