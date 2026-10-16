@@ -7,46 +7,54 @@
   <link rel="stylesheet" href="css/app.css">
   <script src="js/vendor/d3.min.js"></script>
 </head>
-<body class="s60-page">
+<body>
   <div id="dash-root">
-    <div class="s60">
+    <div class="fx">
       <header class="fx-head" id="top">
         <div class="fx-bar">
-          <h1>SPX 60-DTE Smile Analysis</h1>
+          <div class="fx-brand">
+            <p class="fx-kicker">SPX lab</p>
+            <h1>60-DTE smile</h1>
+          </div>
           <nav class="fx-nav" aria-label="Dashboards">
             <a href="index.html">Butterfly lab</a>
             <a href="smile.html" aria-current="page">60-DTE smile</a>
           </nav>
         </div>
+        <p class="fx-take" id="s60-take"></p>
       </header>
 
-      <div class="s60-toolbar">
-        <button class="s60-btn" id="s60-prev" type="button">← Shift Window Prev</button>
-        <button class="s60-btn" id="s60-next" type="button">Shift Window Next →</button>
-        <button class="s60-btn" id="s60-add" type="button">＋ Add Next Day</button>
-      </div>
-
-      <div class="s60-controls">
-        <div>
-          <div class="s60-label">Select Dates</div>
-          <div class="s60-field" id="s60-chips"></div>
-          <input id="s60-filter" class="s60-filter" type="text" placeholder="Filter e.g. 2026-09" aria-label="Filter dates">
-          <div class="s60-list" id="s60-list"></div>
-        </div>
-        <div>
-          <div class="s60-label">IV Type</div>
-          <div class="s60-field"><select id="s60-iv" class="s60-select" aria-label="IV Type"><option value="otm">OTM IV</option></select></div>
-        </div>
-        <div>
-          <div class="s60-label">View By</div>
-          <div class="s60-field">
-            <select id="s60-view" class="s60-select" aria-label="View by">
-              <option value="delta">Delta</option>
-              <option value="strike">Strike</option>
-            </select>
+      <section class="fx-card" id="s60-window">
+        <div class="fx-bar">
+          <h2>Window</h2>
+          <div class="s60-toolbar">
+            <button class="fx-reset" id="s60-prev" type="button">Shift window back</button>
+            <button class="fx-reset" id="s60-next" type="button">Shift window forward</button>
+            <button class="fx-reset" id="s60-add" type="button">Add next day</button>
           </div>
         </div>
-      </div>
+        <p class="fx-note">Pick sessions from the SNP 60-DTE ladder. Shift moves every selected day by one session. Charts on the open tab redraw immediately.</p>
+        <div class="s60-controls">
+          <div>
+            <div class="s60-label">Dates</div>
+            <div class="s60-field" id="s60-chips"></div>
+          </div>
+          <div>
+            <div class="s60-label">View by</div>
+            <div class="fx-seg" role="group" aria-label="View by">
+              <button type="button" data-view="delta" aria-pressed="true">Delta</button>
+              <button type="button" data-view="strike" aria-pressed="false">Strike</button>
+            </div>
+          </div>
+          <div>
+            <div class="s60-label">IV</div>
+            <div class="s60-field"><span class="s60-static">OTM IV</span></div>
+          </div>
+        </div>
+        <input id="s60-filter" class="s60-filter" type="text" placeholder="Filter, e.g. 2026-09" aria-label="Filter dates">
+        <p class="fx-note s60-count" id="s60-count"></p>
+        <div class="s60-list" id="s60-list" role="listbox" aria-label="Trading dates" aria-multiselectable="true"></div>
+      </section>
 
       <div class="s60-tabs" role="tablist">
         <button type="button" role="tab" data-panel="p-daily" aria-selected="true">Daily Smile</button>
@@ -57,104 +65,272 @@
         <button type="button" role="tab" data-panel="p-ts" aria-selected="false">Time Series</button>
         <button type="button" role="tab" data-panel="p-fly" aria-selected="false">Fly Analysis</button>
         <button type="button" role="tab" data-panel="p-fix" aria-selected="false">Fixed Strike Fly Analysis</button>
+        <button type="button" role="tab" data-panel="p-spr" aria-selected="false">Fixed Strike Spreads</button>
       </div>
 
       <section class="s60-panel on" id="p-daily">
-        <h2>60-DTE Smile Comparison</h2>
-        <div class="s60-kpis" id="s60-spots"></div>
-        <div class="s60-legend" id="lg-daily"></div>
-        <div class="s60-chart" id="ch-daily"></div>
-        <h3 id="s60-chg-title"></h3>
-        <div class="s60-chart" id="ch-chg"></div>
-        <h3>Smile Metrics</h3>
-        <div class="s60-scroll"><table id="s60-metrics"><thead></thead><tbody></tbody></table></div>
-        <h3 id="s60-move-title"></h3>
-        <p class="s60-note" id="s60-move"></p>
+        <div class="fx-card">
+          <h2>60-DTE Smile Comparison</h2>
+          <p class="fx-note">OTM implied vol for each selected session. Delta runs 5Δ put to 5Δ call. Strike is the offset from that day’s ATM.</p>
+          <div class="fx-kpis s60-kpis" id="s60-spots"></div>
+          <div class="fx-legend" id="lg-daily"></div>
+          <div class="s60-chart fx-chart" id="ch-daily"></div>
+        </div>
+        <div class="fx-card">
+          <h2 id="s60-chg-title">Smile change</h2>
+          <p class="fx-note">Last selected session minus the first, in vol points.</p>
+          <div class="s60-chart fx-chart" id="ch-chg"></div>
+        </div>
+        <div class="fx-card">
+          <h2>Smile Metrics</h2>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-metrics"><thead></thead><tbody></tbody></table></div>
+          <h3 id="s60-move-title"></h3>
+          <ul class="s60-bullets" id="s60-move"></ul>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-hist">
-        <h2>Historical Skew &amp; Smile Movement</h2>
-        <div class="s60-label">Select Delta Level</div>
-        <div class="s60-field" style="max-width:16rem"><select id="s60-hist-delta" class="s60-select"></select></div>
-        <p class="s60-note" id="s60-hist-note"></p>
-        <h3 id="s60-hist-title"></h3>
-        <div class="s60-legend" id="lg-hist"></div>
-        <div class="s60-chart" id="ch-hist"></div>
-        <h3 id="s60-rr-title"></h3>
-        <div class="s60-chart" id="ch-rr"></div>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Historical Skew &amp; Smile Movement</h2>
+            <div>
+              <div class="s60-label">Delta level</div>
+              <select id="s60-hist-delta" class="s60-select" aria-label="Delta level"></select>
+            </div>
+          </div>
+          <p class="fx-note" id="s60-hist-note"></p>
+          <h3 id="s60-hist-title"></h3>
+          <div class="fx-legend" id="lg-hist"></div>
+          <div class="s60-chart fx-chart" id="ch-hist"></div>
+          <h3 id="s60-rr-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-rr"></div>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-regime">
-        <h2>Volatility Regime Analysis</h2>
-        <div class="s60-kpis" id="s60-regime"></div>
-        <p class="s60-note">Regime is the selected date’s ATM implied vol ranked against every day in the SNP 60-DTE history. Low is the bottom fifth, high is the top fifth.</p>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Volatility Regime Analysis</h2>
+            <div class="s60-toolbar">
+              <button class="fx-reset" id="s60-reg-prev" type="button">Previous day</button>
+              <button class="fx-reset" id="s60-reg-next" type="button">Next day</button>
+            </div>
+          </div>
+          <div class="s60-label">Date</div>
+          <select id="s60-reg-date" class="s60-select" aria-label="Regime date"></select>
+          <p class="fx-note">Regime is this session’s ATM implied vol ranked against every day in the SNP 60-DTE history. Low is the bottom fifth, high is the top fifth.</p>
+          <div class="fx-kpis s60-kpis" id="s60-regime"></div>
+          <div class="s60-chart fx-chart" id="ch-regime"></div>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-delta">
-        <h2>Delta Analysis</h2>
-        <div class="s60-controls">
-          <div><div class="s60-label">Select Delta 1</div><div class="s60-field"><select id="s60-d1" class="s60-select"></select></div></div>
-          <div><div class="s60-label">Select Delta 2</div><div class="s60-field"><select id="s60-d2" class="s60-select"></select></div></div>
+        <div class="fx-card">
+          <h2>Smile Combination Comparison</h2>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-combo"><thead></thead><tbody></tbody></table></div>
         </div>
-        <p class="s60-note" id="s60-delta-note"></p>
-        <div class="s60-legend" id="lg-delta"></div>
-        <div class="s60-chart" id="ch-delta"></div>
+        <div class="fx-card">
+          <h2>Smile &amp; Spot Info</h2>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-spotinfo"><thead></thead><tbody></tbody></table></div>
+          <div class="fx-legend" id="lg-delta"></div>
+          <div class="s60-chart fx-chart" id="ch-delta"></div>
+        </div>
+        <div class="fx-card">
+          <h2>Delta Analysis</h2>
+          <div class="s60-controls">
+            <div>
+              <div class="s60-label">Select Delta 1</div>
+              <select id="s60-d1" class="s60-select" aria-label="Delta 1"></select>
+            </div>
+            <div>
+              <div class="s60-label">Select Delta 2</div>
+              <select id="s60-d2" class="s60-select" aria-label="Delta 2"></select>
+            </div>
+          </div>
+          <p class="fx-note" id="s60-delta-note"></p>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-dpair"><thead></thead><tbody></tbody></table></div>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-struct">
-        <h2>Smile Structure</h2>
-        <p class="s60-note">Risk reversal is put IV minus call IV at the same delta. The fly is (lower + upper) / 2 − centre, in vol points. ATM fly proxy uses the strike ladder: (IV at ATM−700 + IV at ATM+700) / 2 − ATM IV.</p>
-        <div class="s60-scroll"><table id="s60-struct"><thead></thead><tbody></tbody></table></div>
+        <div class="fx-card">
+          <h2>Smile Structure</h2>
+          <p class="fx-note">Risk reversal is put IV minus call IV. A delta butterfly is (put IV + call IV) / 2 − ATM IV. Skew and spreads are differences along the wing, in vol points.</p>
+          <div id="s60-struct"></div>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-ts">
-        <h2>Metrics Time Series</h2>
-        <div class="s60-label">Select Metric to Plot</div>
-        <div class="s60-field" style="max-width:22rem"><select id="s60-metric" class="s60-select"></select></div>
-        <h3 id="s60-ts-title"></h3>
-        <div class="s60-chart" id="ch-spot"></div>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Metrics Time Series</h2>
+            <div class="s60-toolbar">
+              <div>
+                <div class="s60-label">Select Metric Category</div>
+                <select id="s60-cat" class="s60-select" aria-label="Metric category"></select>
+              </div>
+              <div>
+                <div class="s60-label">Select Metric to Plot</div>
+                <select id="s60-metric" class="s60-select" aria-label="Metric"></select>
+              </div>
+            </div>
+          </div>
+          <p class="fx-note">Historical path of a Smile Structure metric across the full SNP sample. Dashed lines mark the dates in the window.</p>
+          <h3 id="s60-ts-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-spot"></div>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-ts-tbl"><thead></thead><tbody></tbody></table></div>
+        </div>
       </section>
 
       <section class="s60-panel" id="p-fly">
-        <h2>Fly Analysis</h2>
-        <div class="s60-label">Fly Side</div>
-        <div class="s60-field" style="max-width:16rem">
-          <select id="s60-fly-side" class="s60-select">
-            <option value="all">Full smile</option>
-            <option value="put">Puts</option>
-            <option value="call">Calls</option>
-          </select>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Fly Analysis</h2>
+            <div>
+              <div class="s60-label">Side</div>
+              <select id="s60-fly-side" class="s60-select" aria-label="Fly side">
+                <option value="all">Full smile</option>
+                <option value="put">Puts</option>
+                <option value="call">Calls</option>
+              </select>
+            </div>
+          </div>
+          <p class="fx-note">IV fly at an interior delta is (neighbour below + neighbour above) / 2 − centre, in vol points.</p>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Daily fly curve</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-fd-prev" type="button">Previous day</button>
+                <button class="fx-reset" id="s60-fd-next" type="button">Next day</button>
+              </div>
+            </div>
+            <div class="s60-label">Day</div>
+            <select id="s60-fd-date" class="s60-select s60-date" aria-label="Daily fly date"></select>
+            <div class="fx-legend" id="lg-fd"></div>
+            <div class="s60-chart fx-chart" id="ch-fd"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Overlapping fly curves</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-fc-prev" type="button">Shift both back</button>
+                <button class="fx-reset" id="s60-fc-next" type="button">Shift both forward</button>
+              </div>
+            </div>
+            <div class="s60-controls">
+              <div>
+                <div class="s60-label">Day A</div>
+                <select id="s60-fc-a" class="s60-select" aria-label="Fly compare day A"></select>
+              </div>
+              <div>
+                <div class="s60-label">Day B</div>
+                <select id="s60-fc-b" class="s60-select" aria-label="Fly compare day B"></select>
+              </div>
+            </div>
+            <div class="fx-legend" id="lg-fc"></div>
+            <div class="s60-chart fx-chart" id="ch-fc"></div>
+            <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-fc-tbl"><thead></thead><tbody></tbody></table></div>
+          </div>
+          <div class="fx-kpis s60-kpis" id="s60-fly-kpis"></div>
+          <div class="fx-legend" id="lg-fly"></div>
+          <div class="s60-chart fx-chart" id="ch-fly"></div>
+          <h3 id="s60-flychg-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-flychg"></div>
+          <h3>Fly Change Summary</h3>
+          <ul class="s60-bullets" id="s60-fly-notes"></ul>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-fly-tbl"><thead></thead><tbody></tbody></table></div>
         </div>
-        <div class="s60-kpis" id="s60-fly-kpis"></div>
-        <h3>Fly Structure — IV Fly</h3>
-        <div class="s60-legend" id="lg-fly"></div>
-        <div class="s60-chart" id="ch-fly"></div>
-        <h3 id="s60-flychg-title"></h3>
-        <div class="s60-chart" id="ch-flychg"></div>
-        <h3>Fly Change Summary</h3>
-        <div id="s60-fly-notes"></div>
       </section>
 
       <section class="s60-panel" id="p-fix">
-        <h2>Fixed Strike Fly Analysis</h2>
-        <p class="s60-note">Strike offsets are ATM-relative, so ATM+100 lines up across dates even when the absolute strike moves.</p>
-        <div class="s60-label">Fly Side</div>
-        <div class="s60-field" style="max-width:16rem">
-          <select id="s60-fix-side" class="s60-select">
-            <option value="all">Put and call</option>
-            <option value="put">Puts</option>
-            <option value="call">Calls</option>
-          </select>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Fixed Strike Fly Analysis</h2>
+            <div>
+              <div class="s60-label">Side</div>
+              <select id="s60-fix-side" class="s60-select" aria-label="Fixed-strike fly side">
+                <option value="all">Put and call</option>
+                <option value="put">Puts</option>
+                <option value="call">Calls</option>
+              </select>
+            </div>
+          </div>
+          <p class="fx-note">Offsets are ATM-relative, so ATM+100 lines up across dates when the absolute strike moves.</p>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Daily fly curve</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-xd-prev" type="button">Previous day</button>
+                <button class="fx-reset" id="s60-xd-next" type="button">Next day</button>
+              </div>
+            </div>
+            <div class="s60-label">Day</div>
+            <select id="s60-xd-date" class="s60-select s60-date" aria-label="Fixed-strike daily fly date"></select>
+            <div class="fx-legend" id="lg-xd"></div>
+            <div class="s60-chart fx-chart" id="ch-xd"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Overlapping fly curves</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-xc-prev" type="button">Shift both back</button>
+                <button class="fx-reset" id="s60-xc-next" type="button">Shift both forward</button>
+              </div>
+            </div>
+            <div class="s60-controls">
+              <div>
+                <div class="s60-label">Day A</div>
+                <select id="s60-xc-a" class="s60-select" aria-label="Fixed-strike compare day A"></select>
+              </div>
+              <div>
+                <div class="s60-label">Day B</div>
+                <select id="s60-xc-b" class="s60-select" aria-label="Fixed-strike compare day B"></select>
+              </div>
+            </div>
+            <div class="fx-legend" id="lg-xc"></div>
+            <div class="s60-chart fx-chart" id="ch-xc"></div>
+            <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-xc-tbl"><thead></thead><tbody></tbody></table></div>
+          </div>
+          <div class="fx-kpis s60-kpis" id="s60-fix-kpis"></div>
+          <div class="fx-legend" id="lg-fix"></div>
+          <div class="s60-chart fx-chart" id="ch-fix"></div>
+          <h3 id="s60-fixchg-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-fixchg"></div>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-fix-tbl"><thead></thead><tbody></tbody></table></div>
         </div>
-        <div class="s60-kpis" id="s60-fix-kpis"></div>
-        <h3>Fly Structure — Put &amp; Call — IV Fly</h3>
-        <div class="s60-legend" id="lg-fix"></div>
-        <div class="s60-chart" id="ch-fix"></div>
-        <h3 id="s60-fixchg-title"></h3>
-        <div class="s60-chart" id="ch-fixchg"></div>
+      </section>
+
+      <section class="s60-panel" id="p-spr">
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Fixed Strike Spreads</h2>
+            <div>
+              <div class="s60-label">Spread Wing</div>
+              <select id="s60-spr-wing" class="s60-select" aria-label="Spread wing">
+                <option value="all">Put and call</option>
+                <option value="call">Call wing</option>
+                <option value="put">Put wing</option>
+              </select>
+            </div>
+          </div>
+          <p class="fx-note">Vertical spreads from the strike ladder. A call spread is the premium of the nearer strike minus the wing. A put spread is Put(ATM−n) minus Put(ATM−n−100). The same offset lines up across dates.</p>
+          <div class="fx-kpis s60-kpis" id="s60-spr-kpis"></div>
+          <h3>Call Spreads — Premium</h3>
+          <div class="fx-legend" id="lg-sprc"></div>
+          <div class="s60-chart fx-chart" id="ch-sprc"></div>
+          <h3 id="s60-sprc-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-sprcchg"></div>
+          <h3>Put Spreads — Premium</h3>
+          <div class="fx-legend" id="lg-sprp"></div>
+          <div class="s60-chart fx-chart" id="ch-sprp"></div>
+          <h3 id="s60-sprp-title"></h3>
+          <div class="s60-chart fx-chart" id="ch-sprpchg"></div>
+          <h3>Spread Comparison</h3>
+          <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-spr-tbl"><thead></thead><tbody></tbody></table></div>
+        </div>
       </section>
     </div>
-    <p class="fx-foot">SNP 60-DTE ladders, nearest 60 DTE, 16:00 EOD. <a href="index.html">Butterfly lab</a></p>
+    <p class="fx-foot">SNP 60-DTE ladders, nearest 60 DTE, 16:00. <a href="index.html">Butterfly lab</a></p>
   </div>
   <script src="js/smile-data.js"></script>
   <script src="js/smile.js"></script>

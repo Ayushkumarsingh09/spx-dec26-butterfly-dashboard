@@ -6,7 +6,16 @@
   const BY = new Map(DAYS.map((d) => [d.d, d]));
   const DX = RAW.deltaX;
   const SX = RAW.strikeX;
-  const PAL = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A", "#19D3F3", "#FF6692", "#B6E880"];
+  const PAL = [
+    "var(--cds-chart-categorical-1)",
+    "var(--cds-chart-categorical-2)",
+    "var(--cds-chart-categorical-3)",
+    "var(--cds-chart-categorical-4)",
+    "#c94f7c",
+    "#7a8b2a",
+    "#4f6bd9",
+    "#a0522d"
+  ];
   const DELTA_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 45];
 
   const wanted = ["2026-09-25", "2026-09-28"].filter((d) => BY.has(d));
@@ -17,6 +26,7 @@
   const f1 = (v) => d3.format(",.2f")(v);
   const f2 = (v) => d3.format(".2f")(v);
   const f3 = (v) => d3.format(".3f")(v);
+  const f4 = (v) => d3.format(".4f")(v);
   const signed = (v, f) => (v > 0 ? "+" : v < 0 ? "−" : "") + f(Math.abs(v));
 
   function deltaName(x) {
@@ -39,6 +49,69 @@
   function ivCall(day, level) { return day.iv[callIndex(level)]; }
   function atmIv(day) { return day.iv[DX.indexOf(50)]; }
   function siv(day, off) { return day.siv[SX.indexOf(off)]; }
+  function prem(day, off) { return day.sp[SX.indexOf(off)]; }
+  function rr(day, level) { return ivPut(day, level) - ivCall(day, level); }
+  function bf(day, level) { return (ivPut(day, level) + ivCall(day, level)) / 2 - atmIv(day); }
+  const UP = "#1f9d55";
+  const DN = "#d64545";
+  function barPt(x, y) { return { x, y, c: y >= 0 ? UP : DN }; }
+  function cls(v) { return v > 1e-9 ? "fx-up" : v < -1e-9 ? "fx-dn" : ""; }
+
+  function paint(table, headers, rows) {
+    const th = table.querySelector("thead");
+    const tb = table.querySelector("tbody");
+    th.replaceChildren();
+    tb.replaceChildren();
+    const hr = document.createElement("tr");
+    headers.forEach((t) => {
+      const h = document.createElement("th");
+      h.textContent = t;
+      hr.appendChild(h);
+    });
+    th.appendChild(hr);
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      row.forEach((cell) => {
+        const td = document.createElement("td");
+        td.textContent = cell.t;
+        if (cell.cls) td.className = cell.cls;
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  function vals(days, fn, fmt) {
+    const v = days.map(fn);
+    const cells = v.map((n) => ({ t: fmt(n) }));
+    if (days.length > 1) {
+      const d = v[v.length - 1] - v[0];
+      cells.push({ t: signed(d, fmt), cls: cls(d) });
+    }
+    return cells;
+  }
+
+  function block(parent, title, headers, rows) {
+    const wrap = document.createElement("div");
+    wrap.className = "s60-block";
+    const h = document.createElement("h3");
+    h.textContent = title;
+    const sc = document.createElement("div");
+    sc.className = "fx-detail-wrap";
+    const table = document.createElement("table");
+    table.className = "fx-tbl";
+    table.append(document.createElement("thead"), document.createElement("tbody"));
+    sc.appendChild(table);
+    wrap.append(h, sc);
+    parent.appendChild(wrap);
+    paint(table, headers, rows);
+  }
+
+  function headers(days, first) {
+    return [first, ...days.map((d) => d.d), ...(days.length > 1 ? ["Change"] : [])];
+  }
+
+  let regimeDate = BY.has("2026-09-28") ? "2026-09-28" : DATES[DATES.length - 1];
 
   function sorted() { return selected.slice().sort(); }
 
@@ -47,11 +120,13 @@
   function chart(el, cfg) {
     el.replaceChildren();
     if (!cfg.series.length || !cfg.series[0].pts.length) {
+      el.classList.add("fx-fail");
       el.textContent = "Select at least one date.";
       return;
     }
+    el.classList.remove("fx-fail");
     const W = Math.max(320, el.clientWidth || 640);
-    const H = 320;
+    const H = cfg.h || 320;
     const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
     const allY = cfg.series.flatMap((s) => s.pts.map((p) => p.y)).filter((v) => v != null && isFinite(v));
     let [y0, y1] = d3.extent(allY);
@@ -72,16 +147,27 @@
     const cats = cfg.cats;
     const x = cats ? d3.scalePoint(cats, [L, W - R]) : d3.scaleLinear(cfg.xdom, [L, W - R]);
     const g = svg.append("g");
-    g.selectAll("line").data(y.ticks(6)).join("line")
-      .attr("x1", L).attr("x2", W - R).attr("y1", (d) => y(d)).attr("y2", (d) => y(d)).attr("stroke", "#eee");
+    g.selectAll("line.gy").data(y.ticks(6)).join("line")
+      .attr("x1", L).attr("x2", W - R).attr("y1", (d) => y(d)).attr("y2", (d) => y(d))
+      .attr("stroke", "var(--cds-chart-grid)");
+    g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", H - 36).attr("y2", H - 36)
+      .attr("stroke", "var(--cds-chart-axis)");
     g.selectAll("text.ty").data(y.ticks(6)).join("text")
       .attr("x", L - 8).attr("y", (d) => y(d)).attr("dy", "0.32em").attr("text-anchor", "end")
-      .attr("font-size", 12).attr("fill", "#666").text(cfg.yfmt);
+      .attr("font-size", 11).attr("fill", "var(--color-fg-muted)").text(cfg.yfmt);
     const xt = cfg.xticks || (cats ? cats.filter((_, i) => i % (cfg.every || 1) === 0) : x.ticks(7));
     g.selectAll("text.tx").data(xt).join("text")
       .attr("x", (d) => x(d)).attr("y", H - 16).attr("text-anchor", "middle")
-      .attr("font-size", 11).attr("fill", "#666").text((d) => cfg.xfmt ? cfg.xfmt(d) : d);
-    if (cfg.zero) g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", y(0)).attr("y2", y(0)).attr("stroke", "#ccc");
+      .attr("font-size", 11).attr("fill", "var(--color-fg-muted)").text((d) => cfg.xfmt ? cfg.xfmt(d) : d);
+    if (cfg.zero) g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", y(0)).attr("y2", y(0))
+      .attr("stroke", "var(--cds-chart-reference)").attr("stroke-dasharray", "3 3");
+    if (cfg.marks && cats) {
+      cfg.marks.forEach((m) => {
+        if (cats.indexOf(m) < 0) return;
+        g.append("line").attr("x1", x(m)).attr("x2", x(m)).attr("y1", 12).attr("y2", H - 36)
+          .attr("stroke", "var(--cds-chart-reference)").attr("stroke-dasharray", "2 3");
+      });
+    }
     cfg.series.forEach((s) => {
       const pts = s.pts.filter((p) => p.y != null && isFinite(p.y));
       if (!pts.length) return;
@@ -93,11 +179,12 @@
           .attr("x", (p) => x(p.x) - bw / 2).attr("width", bw)
           .attr("y", (p) => Math.min(y(p.y), y(0)))
           .attr("height", (p) => Math.abs(y(p.y) - y(0)))
-          .attr("fill", s.color);
+          .attr("fill", (p) => p.c || s.color);
       } else {
         g.append("path")
           .attr("d", d3.line().defined((p) => p.y != null).x((p) => x(p.x)).y((p) => y(p.y))(pts))
-          .attr("fill", "none").attr("stroke", s.color).attr("stroke-width", 2);
+          .attr("fill", "none").attr("stroke", s.color).attr("stroke-width", 2)
+          .attr("stroke-dasharray", s.dash ? "5 3" : null);
         if (!cats || cats.length < 40) {
           g.append("g").selectAll("circle").data(pts).join("circle")
             .attr("cx", (p) => x(p.x)).attr("cy", (p) => y(p.y)).attr("r", 3.2).attr("fill", s.color);
@@ -127,7 +214,11 @@
           if (!p || p.y == null) return;
           const line = document.createElement("div");
           line.className = "r";
-          line.textContent = s.name + ": " + cfg.yfmt(p.y);
+          const sw = document.createElement("i");
+          sw.style.background = s.color;
+          const tx = document.createElement("span");
+          tx.textContent = s.name + ": " + cfg.yfmt(p.y);
+          line.append(sw, tx);
           tip.appendChild(line);
         });
         tip.style.display = "block";
@@ -144,7 +235,7 @@
     items.forEach((it) => {
       const s = document.createElement("span");
       const i = document.createElement("i");
-      i.style.background = it.color;
+      i.style.borderTopColor = it.color;
       s.append(i, document.createTextNode(it.name));
       el.appendChild(s);
     });
@@ -179,13 +270,13 @@
 
   function kpi(label, value, sub, up) {
     const d = document.createElement("div");
-    d.className = "s60-kpi";
+    d.className = "fx-card fx-kpi";
     d.innerHTML = `<div class="lbl"></div><div class="val"></div>`;
     d.querySelector(".lbl").textContent = label;
     d.querySelector(".val").textContent = value;
     if (sub) {
       const s = document.createElement("div");
-      s.className = "sub" + (up ? " up" : "");
+      s.className = "sub " + (up == null ? "" : up ? "fx-up" : "fx-dn");
       s.textContent = sub;
       d.appendChild(s);
     }
@@ -209,11 +300,12 @@
     chips.replaceChildren();
     sorted().forEach((d) => {
       const chip = document.createElement("span");
-      chip.className = "s60-chip";
+      chip.className = "fx-chip";
       chip.append(document.createTextNode(d + " "));
       const x = document.createElement("button");
       x.type = "button";
       x.textContent = "×";
+      x.disabled = selected.length === 1;
       x.setAttribute("aria-label", "Remove " + d);
       x.addEventListener("click", () => {
         if (selected.length === 1) return;
@@ -223,13 +315,25 @@
       chip.appendChild(x);
       chips.appendChild(chip);
     });
+    document.getElementById("s60-count").textContent = selected.length + " of " + DATES.length + " sessions";
     const list = document.getElementById("s60-list");
     list.replaceChildren();
     const q = filter.trim();
+    let month = "";
     DATES.filter((d) => !q || d.includes(q)).slice().reverse().forEach((d) => {
+      const key = d.slice(0, 7);
+      if (key !== month) {
+        month = key;
+        const h = document.createElement("div");
+        h.className = "s60-month";
+        h.textContent = key;
+        list.appendChild(h);
+      }
       const b = document.createElement("button");
       b.type = "button";
+      b.setAttribute("role", "option");
       b.textContent = d;
+      b.setAttribute("aria-selected", selected.includes(d) ? "true" : "false");
       if (selected.includes(d)) b.className = "on";
       b.addEventListener("click", () => {
         if (selected.includes(d)) {
@@ -274,56 +378,37 @@
       const a = smilePts(first);
       const b = smilePts(last);
       chart(chgEl, {
-        series: [{ name: "Change", color: PAL[0], bars: true, pts: a.map((p, i) => ({ x: p.x, y: b[i].y - p.y })) }],
+        series: [{ name: "Change", color: UP, bars: true, pts: a.map((p, i) => barPt(p.x, b[i].y - p.y)) }],
         ...ax, yfmt: (v) => signed(v, f2), zero: true, yTitle: "Δ IV (vol pts)"
       });
     }
-    const table = document.getElementById("s60-metrics");
-    const th = table.querySelector("thead");
-    const tb = table.querySelector("tbody");
-    th.replaceChildren();
-    tb.replaceChildren();
-    const hr = document.createElement("tr");
-    [view === "strike" ? "Strike" : "Delta", ...days.map((d) => d.d), days.length > 1 ? "Δ" : ""].filter(Boolean).forEach((t) => {
-      const h = document.createElement("th");
-      h.textContent = t;
-      hr.appendChild(h);
-    });
-    th.appendChild(hr);
-    smilePts(days[0]).forEach((p, i) => {
-      const tr = document.createElement("tr");
-      const cells = [ax.xfmt(p.x), ...days.map((day) => f2(smilePts(day)[i].y))];
-      if (days.length > 1) {
-        const dlt = smilePts(last)[i].y - smilePts(first)[i].y;
-        cells.push(signed(dlt, f2));
-      }
-      cells.forEach((t, j) => {
-        const td = document.createElement("td");
-        td.textContent = t;
-        if (j === cells.length - 1 && days.length > 1) {
-          const n = smilePts(last)[i].y - smilePts(first)[i].y;
-          td.className = n > 0 ? "up" : n < 0 ? "dn" : "";
-        }
-        tr.appendChild(td);
-      });
-      tb.appendChild(tr);
-    });
+    const label = (x) => (view === "strike" ? strikeName(x) : deltaName(x)) + " IV";
+    paint(document.getElementById("s60-metrics"), headers(days, "Metric"), smilePts(first).map((p, i) => [
+      { t: label(p.x) },
+      ...vals(days, (day) => smilePts(day)[i].y, f2)
+    ]));
     document.getElementById("s60-move-title").textContent = days.length > 1
       ? `Smile Movement Analysis (${first.d} to ${last.d})`
       : "Smile Movement Analysis";
     const move = document.getElementById("s60-move");
-    if (days.length < 2 || view !== "delta") {
-      move.textContent = days.length < 2 ? "Add another date to compare the wings." : "Switch View By to Delta to read the put and call wings.";
-      return;
-    }
+    move.replaceChildren();
+    const add = (t) => {
+      const li = document.createElement("li");
+      li.textContent = t;
+      move.appendChild(li);
+    };
+    if (days.length < 2) { add("Add another date to compare the wings."); return; }
+    if (view !== "delta") { add("Switch View By to Delta to read the put and call wings."); return; }
     const dPut = ivPut(last, 5) - ivPut(first, 5);
     const dCall = ivCall(last, 5) - ivCall(first, 5);
     const dAtm = atmIv(last) - atmIv(first);
-    let line = `ATM IV ${signed(dAtm, f2)} vol. 5Δ put ${signed(dPut, f2)} vol, 5Δ call ${signed(dCall, f2)} vol.`;
-    if (dCall < -0.02 && dPut > 0.05) line = "Call wing flattening. " + line;
-    else if (dPut > 0.2 && dCall > 0.2) line = "Both wings higher. " + line;
-    else if (dPut < -0.05 && dCall > 0.02) line = "Put wing compressing. " + line;
-    move.textContent = line;
+    if (dCall < -0.02 && dPut > 0.05) add("Call wing flattening.");
+    else if (dPut > 0.2 && dCall > 0.2) add("Both wings higher.");
+    else if (dPut < -0.05 && dCall > 0.02) add("Put wing compressing.");
+    else add("Wing move is mixed.");
+    add(`ATM IV ${signed(dAtm, f2)} vol.`);
+    add(`5Δ put ${signed(dPut, f2)} vol, 5Δ call ${signed(dCall, f2)} vol.`);
+    add(`25Δ risk reversal ${signed(rr(last, 25) - rr(first, 25), f2)} vol.`);
   }
 
   function renderHist() {
@@ -338,172 +423,372 @@
         { name: level + "Δ P", color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: ivPut(d, level) })) },
         { name: level + "Δ C", color: PAL[1], pts: DAYS.map((d) => ({ x: d.d, y: ivCall(d, level) })) }
       ],
-      cats: DATES, every, xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "Implied Volatility (%)"
+      cats: DATES, every, marks: selected, xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "Implied Volatility (%)"
     });
     chart(document.getElementById("ch-rr"), {
-      series: [{ name: level + "Δ RR", color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: ivPut(d, level) - ivCall(d, level) })) }],
-      cats: DATES, every, xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "Risk Reversal (vol pts)"
+      series: [{ name: level + "Δ RR", color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: rr(d, level) })) }],
+      cats: DATES, every, marks: selected, xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "Risk Reversal (vol pts)"
     });
   }
 
-  function renderRegime(days) {
-    const day = days[days.length - 1];
-    const atms = DAYS.map(atmIv).sort((a, b) => a - b);
+  function renderRegime() {
+    const sel = document.getElementById("s60-reg-date");
+    if (!sel.options.length) {
+      DATES.forEach((d) => {
+        const o = document.createElement("option");
+        o.value = d;
+        o.textContent = d;
+        sel.appendChild(o);
+      });
+    }
+    if (!BY.has(regimeDate)) regimeDate = DATES[DATES.length - 1];
+    sel.value = regimeDate;
+    const i = DATES.indexOf(regimeDate);
+    document.getElementById("s60-reg-prev").disabled = i <= 0;
+    document.getElementById("s60-reg-next").disabled = i >= DATES.length - 1;
+    const day = BY.get(regimeDate);
+    const atms = DAYS.map(atmIv).slice().sort((a, b) => a - b);
     const v = atmIv(day);
     const pct = atms.filter((a) => a <= v).length / atms.length * 100;
     const name = pct <= 20 ? "LOW VOL" : pct >= 80 ? "HIGH VOL" : "MID VOL";
+    const q = (p) => atms[Math.min(atms.length - 1, Math.max(0, Math.round((atms.length - 1) * p)))];
     const box = document.getElementById("s60-regime");
     box.replaceChildren();
     box.append(
       kpi("Date", day.d),
       kpi("Spot", f1(day.u)),
+      kpi("ATM strike", d3.format(",.0f")(day.atm)),
       kpi("ATM IV", f2(v) + "%"),
       kpi("ATM IV percentile", f1(pct) + "%"),
-      kpi("Regime", name)
+      kpi("Regime", name),
+      kpi("20th pct ATM IV", f2(q(0.2)) + "%"),
+      kpi("80th pct ATM IV", f2(q(0.8)) + "%")
     );
+    const every = Math.ceil(DATES.length / 8);
+    chart(document.getElementById("ch-regime"), {
+      series: [{ name: "ATM IV", color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: atmIv(d) })) }],
+      cats: DATES, every, marks: [regimeDate], xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "ATM IV (%)"
+    });
   }
 
-  function renderDelta() {
+  function renderDelta(days) {
+    const head = headers(days, "Description");
+    head.splice(1, 0, "Formula");
+    const spec = [
+      ["Volatility level", "V_ATM", (d) => atmIv(d)],
+      ["25Δ skew", "V_25P − V_25C", (d) => rr(d, 25)],
+      ["10Δ wing skew", "V_10P − V_10C", (d) => rr(d, 10)],
+      ["25Δ curvature", "V_25P + V_25C − 2 V_ATM", (d) => ivPut(d, 25) + ivCall(d, 25) - 2 * atmIv(d)],
+      ["10Δ curvature", "V_10P + V_10C − 2 V_ATM", (d) => ivPut(d, 10) + ivCall(d, 10) - 2 * atmIv(d)],
+      ["Put-side slope", "V_25P − V_ATM", (d) => ivPut(d, 25) - atmIv(d)],
+      ["Call-side slope", "V_ATM − V_25C", (d) => atmIv(d) - ivCall(d, 25)],
+      ["Put-wing slope", "V_10P − V_25P", (d) => ivPut(d, 10) - ivPut(d, 25)],
+      ["Call-wing slope", "V_25C − V_10C", (d) => ivCall(d, 25) - ivCall(d, 10)],
+      ["Wing curvature", "V_10P + V_10C − V_25P − V_25C", (d) => ivPut(d, 10) + ivCall(d, 10) - ivPut(d, 25) - ivCall(d, 25)]
+    ];
+    paint(document.getElementById("s60-combo"), head, spec.map(([name, formula, fn]) => [
+      { t: name }, { t: formula }, ...vals(days, fn, f4)
+    ]));
+    paint(document.getElementById("s60-spotinfo"), ["Date", "Spot", "ATM strike", "ATM IV (%)"], days.map((d) => [
+      { t: d.d }, { t: f1(d.u) }, { t: d3.format(",.0f")(d.atm) }, { t: f2(atmIv(d)) }
+    ]));
+    const ax = axis();
+    ax.xdom = view === "strike" ? ax.xdom : [-0.3, 100.3];
+    legend("lg-delta", days.map((d, i) => ({ name: d.d, color: color(i) })));
+    const saved = view;
+    view = "delta";
+    const pts = (day) => DX.map((x, i) => ({ x, y: day.iv[i] }));
+    view = saved;
+    chart(document.getElementById("ch-delta"), {
+      series: days.map((day, i) => ({ name: day.d, color: color(i), pts: pts(day) })),
+      xdom: [-0.3, 100.3], xticks: [5, 10, 25, 50, 75, 90, 95], xfmt: deltaName, yfmt: f2, yTitle: "Implied Volatility (%)"
+    });
     const a = Number(document.getElementById("s60-d1").value);
     const b = Number(document.getElementById("s60-d2").value);
-    document.getElementById("s60-delta-note").textContent = `${deltaName(a)} against ${deltaName(b)} across the full SNP history.`;
-    const every = Math.ceil(DATES.length / 8);
-    legend("lg-delta", [{ name: deltaName(a), color: PAL[0] }, { name: deltaName(b), color: PAL[1] }]);
-    chart(document.getElementById("ch-delta"), {
-      series: [
-        { name: deltaName(a), color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: d.iv[DX.indexOf(a)] })) },
-        { name: deltaName(b), color: PAL[1], pts: DAYS.map((d) => ({ x: d.d, y: d.iv[DX.indexOf(b)] })) }
-      ],
-      cats: DATES, every, xfmt: (d) => d.slice(0, 7), yfmt: f2, yTitle: "Implied Volatility (%)"
-    });
+    document.getElementById("s60-delta-note").textContent = `${a}Δ against ${b}Δ on each selected session. Diff is the first delta minus the second.`;
+    const pairHead = ["Date",
+      a + "Δ Put", b + "Δ Put", `Put diff (${a}−${b})`,
+      a + "Δ Call", b + "Δ Call", `Call diff (${a}−${b})`,
+      a + "Δ RR", b + "Δ RR", `RR diff (${a}−${b})`,
+      a + "Δ BF", b + "Δ BF", `BF diff (${a}−${b})`];
+    paint(document.getElementById("s60-dpair"), pairHead, days.map((d) => [
+      { t: d.d },
+      { t: f2(ivPut(d, a)) }, { t: f2(ivPut(d, b)) }, { t: f2(ivPut(d, a) - ivPut(d, b)) },
+      { t: f2(ivCall(d, a)) }, { t: f2(ivCall(d, b)) }, { t: f2(ivCall(d, a) - ivCall(d, b)) },
+      { t: f2(rr(d, a)) }, { t: f2(rr(d, b)) }, { t: f2(rr(d, a) - rr(d, b)) },
+      { t: f2(bf(d, a)) }, { t: f2(bf(d, b)) }, { t: f2(bf(d, a) - bf(d, b)) }
+    ]));
   }
 
   function renderStruct(days) {
-    const table = document.getElementById("s60-struct");
-    const th = table.querySelector("thead");
-    const tb = table.querySelector("tbody");
-    th.replaceChildren();
-    tb.replaceChildren();
-    const hr = document.createElement("tr");
-    ["Metric", ...days.map((d) => d.d), days.length > 1 ? "Δ" : ""].filter(Boolean).forEach((t) => {
-      const h = document.createElement("th");
-      h.textContent = t;
-      hr.appendChild(h);
-    });
-    th.appendChild(hr);
-    const rows = [
-      ["Spot", (d) => d.u, f1],
-      ["ATM IV", (d) => atmIv(d), f2],
-      ["25Δ RR", (d) => ivPut(d, 25) - ivCall(d, 25), f2],
-      ["10Δ RR", (d) => ivPut(d, 10) - ivCall(d, 10), f2],
-      ["5Δ RR", (d) => ivPut(d, 5) - ivCall(d, 5), f2],
-      ["25Δ fly", (d) => (ivPut(d, 20) + ivPut(d, 30)) / 2 - ivPut(d, 25), f3],
-      ["ATM fly proxy", (d) => (siv(d, -700) + siv(d, 700)) / 2 - atmIv(d), f3]
-    ];
-    rows.forEach(([name, fn, fmt]) => {
-      const tr = document.createElement("tr");
-      const vals = days.map(fn);
-      const cells = [name, ...vals.map(fmt)];
-      if (days.length > 1) cells.push(signed(vals[vals.length - 1] - vals[0], fmt));
-      cells.forEach((t) => {
-        const td = document.createElement("td");
-        td.textContent = t;
-        tr.appendChild(td);
-      });
-      tb.appendChild(tr);
-    });
+    const host = document.getElementById("s60-struct");
+    host.replaceChildren();
+    const h = (label) => headers(days, label);
+    const row = (name, fn, fmt) => [{ t: name }, ...vals(days, fn, fmt)];
+    block(host, "Market & Core Smile", h("Measure"), [
+      row("Spot", (d) => d.u, f1),
+      row("ATM IV", atmIv, f4),
+      row("25Δ risk reversal", (d) => rr(d, 25), f4)
+    ]);
+    block(host, "Skew Structure", h("Measure"), [
+      row("Put-side skew", (d) => ivPut(d, 25) - atmIv(d), f4),
+      row("Put-wing skew", (d) => ivPut(d, 10) - ivPut(d, 25), f4),
+      row("Call-side skew", (d) => atmIv(d) - ivCall(d, 25), f4),
+      row("Call-wing skew", (d) => ivCall(d, 25) - ivCall(d, 10), f4)
+    ]);
+    const putSpreads = [];
+    const callSpreads = [];
+    for (let i = 0; i < DELTA_LEVELS.length - 1; i++) {
+      const lo = DELTA_LEVELS[i];
+      const hi = DELTA_LEVELS[i + 1];
+      putSpreads.push(row(lo + "P − " + hi + "P", (d) => ivPut(d, lo) - ivPut(d, hi), f4));
+    }
+    for (let i = DELTA_LEVELS.length - 1; i > 0; i--) {
+      const hi = DELTA_LEVELS[i];
+      const lo = DELTA_LEVELS[i - 1];
+      callSpreads.push(row(hi + "C − " + lo + "C", (d) => ivCall(d, hi) - ivCall(d, lo), f4));
+    }
+    block(host, "5Δ Smile Spreads — Put Wing", h("Smile spread"), putSpreads);
+    block(host, "5Δ Smile Spreads — Call Wing", h("Smile spread"), callSpreads);
+    block(host, "All Risk Reversals", h("Measure"), DELTA_LEVELS.map((n) => row(n + "Δ risk reversal", (d) => rr(d, n), f4)));
+    block(host, "All Butterflies", h("Measure"), DELTA_LEVELS.map((n) => row(n + "Δ butterfly", (d) => bf(d, n), f4)));
   }
 
-  function seriesFor(metric) {
-    if (metric === "spot") return { name: "Spot", y: (d) => d.u, fmt: (v) => d3.format(",.0f")(v) };
-    if (metric === "atm") return { name: "ATM IV", y: atmIv, fmt: f2 };
-    if (metric === "p25") return { name: "25Δ P", y: (d) => ivPut(d, 25), fmt: f2 };
-    if (metric === "c25") return { name: "25Δ C", y: (d) => ivCall(d, 25), fmt: f2 };
-    if (metric === "rr25") return { name: "25Δ RR", y: (d) => ivPut(d, 25) - ivCall(d, 25), fmt: f2 };
-    return { name: "ATM fly proxy", y: (d) => (siv(d, -700) + siv(d, 700)) / 2 - atmIv(d), fmt: f3 };
+  function catalog() {
+    const out = [];
+    const add = (cat, name, y, fmt) => out.push({ cat, id: cat + "|" + name, name, y, fmt: fmt || f2 });
+    add("Market & core", "Spot", (d) => d.u, (v) => d3.format(",.2f")(v));
+    add("Market & core", "ATM IV", atmIv, f2);
+    add("Market & core", "25Δ risk reversal", (d) => rr(d, 25), f2);
+    add("Skew", "Put-side skew", (d) => ivPut(d, 25) - atmIv(d), f2);
+    add("Skew", "Put-wing skew", (d) => ivPut(d, 10) - ivPut(d, 25), f2);
+    add("Skew", "Call-side skew", (d) => atmIv(d) - ivCall(d, 25), f2);
+    add("Skew", "Call-wing skew", (d) => ivCall(d, 25) - ivCall(d, 10), f2);
+    DELTA_LEVELS.forEach((n) => add("Risk reversals", n + "Δ risk reversal", (d) => rr(d, n), f2));
+    DELTA_LEVELS.forEach((n) => add("Butterflies", n + "Δ butterfly", (d) => bf(d, n), f4));
+    for (let i = 0; i < DELTA_LEVELS.length - 1; i++) {
+      const lo = DELTA_LEVELS[i];
+      const hi = DELTA_LEVELS[i + 1];
+      add("Put spreads", lo + "P − " + hi + "P", (d) => ivPut(d, lo) - ivPut(d, hi), f2);
+    }
+    for (let i = DELTA_LEVELS.length - 1; i > 0; i--) {
+      const hi = DELTA_LEVELS[i];
+      const lo = DELTA_LEVELS[i - 1];
+      add("Call spreads", hi + "C − " + lo + "C", (d) => ivCall(d, hi) - ivCall(d, lo), f2);
+    }
+    return out;
   }
 
-  function renderTs() {
-    const spec = seriesFor(document.getElementById("s60-metric").value);
+  function syncMetrics() {
+    const cat = document.getElementById("s60-cat").value;
+    const el = document.getElementById("s60-metric");
+    const prev = el.value;
+    const items = catalog().filter((m) => m.cat === cat);
+    el.replaceChildren();
+    items.forEach((m) => {
+      const o = document.createElement("option");
+      o.value = m.id;
+      o.textContent = m.name;
+      el.appendChild(o);
+    });
+    if (items.some((m) => m.id === prev)) el.value = prev;
+  }
+
+  function renderTs(days) {
+    syncMetrics();
+    const spec = catalog().find((m) => m.id === document.getElementById("s60-metric").value) || catalog()[0];
     document.getElementById("s60-ts-title").textContent = "Time Series: " + spec.name;
     chart(document.getElementById("ch-spot"), {
       series: [{ name: spec.name, color: PAL[0], pts: DAYS.map((d) => ({ x: d.d, y: spec.y(d) })) }],
-      cats: DATES, every: Math.ceil(DATES.length / 8), xfmt: (d) => d.slice(0, 7), yfmt: spec.fmt, yTitle: spec.name
+      cats: DATES, every: Math.ceil(DATES.length / 8), marks: selected, xfmt: (d) => d.slice(0, 7), yfmt: spec.fmt, yTitle: spec.name
     });
+    paint(document.getElementById("s60-ts-tbl"), headers(days, "Metric"), [
+      [{ t: spec.name }, ...vals(days, spec.y, spec.fmt)]
+    ]);
+  }
+
+  const flyNav = {
+    delta: { day: "2026-09-28", a: "2026-09-25", b: "2026-09-28" },
+    fix: { day: "2026-09-28", a: "2026-09-25", b: "2026-09-28" }
+  };
+
+  function ensureDates(id, value) {
+    const el = document.getElementById(id);
+    if (!el.options.length) {
+      DATES.forEach((d) => {
+        const o = document.createElement("option");
+        o.value = d;
+        o.textContent = d;
+        el.appendChild(o);
+      });
+    }
+    if (BY.has(value)) el.value = value;
+    return el.value;
+  }
+
+  function stepDate(d, n) {
+    const i = DATES.indexOf(d) + n;
+    if (i < 0 || i >= DATES.length) return d;
+    return DATES[i];
+  }
+
+  function renderFlyDays(kind) {
+    const st = flyNav[kind];
+    const delta = kind === "delta";
+    const p = delta
+      ? { date: "s60-fd-date", prev: "s60-fd-prev", next: "s60-fd-next", a: "s60-fc-a", b: "s60-fc-b", ap: "s60-fc-prev", an: "s60-fc-next", lgD: "lg-fd", chD: "ch-fd", lgC: "lg-fc", chC: "ch-fc", tbl: "s60-fc-tbl" }
+      : { date: "s60-xd-date", prev: "s60-xd-prev", next: "s60-xd-next", a: "s60-xc-a", b: "s60-xc-b", ap: "s60-xc-prev", an: "s60-xc-next", lgD: "lg-xd", chD: "ch-xd", lgC: "lg-xc", chC: "ch-xc", tbl: "s60-xc-tbl" };
+    st.day = ensureDates(p.date, st.day);
+    st.a = ensureDates(p.a, st.a);
+    st.b = ensureDates(p.b, st.b);
+    document.getElementById(p.prev).disabled = DATES.indexOf(st.day) <= 0;
+    document.getElementById(p.next).disabled = DATES.indexOf(st.day) >= DATES.length - 1;
+    const ia = DATES.indexOf(st.a);
+    const ib = DATES.indexOf(st.b);
+    document.getElementById(p.ap).disabled = ia <= 0 || ib <= 0;
+    document.getElementById(p.an).disabled = ia >= DATES.length - 1 || ib >= DATES.length - 1;
+    const side = document.getElementById(delta ? "s60-fly-side" : "s60-fix-side").value;
+    const curve = (day) => {
+      if (delta) {
+        const keep = (pt) => side === "put" ? pt.x < 50 : side === "call" ? pt.x > 50 : true;
+        return flies(day).filter(keep);
+      }
+      const keep = (pt) => side === "put" ? pt.x < 0 : side === "call" ? pt.x > 0 : pt.x !== 0;
+      return fixedFlies(day).filter(keep);
+    };
+    const xfmt = delta ? flyName : strikeName;
+    const one = curve(BY.get(st.day));
+    legend(p.lgD, [{ name: st.day, color: PAL[0] }]);
+    chart(document.getElementById(p.chD), {
+      series: [{ name: st.day, color: PAL[0], pts: one }],
+      cats: one.map((pt) => pt.x), every: 1, xfmt, yfmt: f4, yTitle: "IV fly"
+    });
+    const pa = curve(BY.get(st.a));
+    const pb = curve(BY.get(st.b));
+    const cats = pa.map((pt) => pt.x);
+    legend(p.lgC, [{ name: st.a, color: PAL[0] }, { name: st.b, color: PAL[1] }]);
+    chart(document.getElementById(p.chC), {
+      series: [
+        { name: st.a, color: PAL[0], pts: pa },
+        { name: st.b, color: PAL[1], pts: pb }
+      ],
+      cats, every: 1, xfmt, yfmt: f4, yTitle: "IV fly"
+    });
+    paint(document.getElementById(p.tbl), [delta ? "Delta" : "Offset", st.a, st.b, "B − A"], cats.map((x, i) => {
+      const diff = pb[i].y - pa[i].y;
+      return [
+        { t: xfmt(x) },
+        { t: f4(pa[i].y) },
+        { t: f4(pb[i].y) },
+        { t: signed(diff, f4), cls: cls(diff) }
+      ];
+    }));
   }
 
   function renderFly(days) {
+    renderFlyDays("delta");
     const side = document.getElementById("s60-fly-side").value;
     const first = days[0];
     const last = days[days.length - 1];
     const box = document.getElementById("s60-fly-kpis");
     box.replaceChildren();
-    box.append(kpi("Spot " + last.d, f1(last.u), days.length > 1 ? signed(last.u - first.u, f1) + " (" + signed((last.u - first.u) / first.u * 100, f2) + "%)" : null, last.u > first.u));
-    box.append(kpi("ATM IV " + last.d, f2(atmIv(last)), days.length > 1 ? signed(atmIv(last) - atmIv(first), f2) + " vol" : null, atmIv(last) > atmIv(first)));
+    box.append(
+      kpi("Spot " + last.d, f1(last.u), days.length > 1 ? signed(last.u - first.u, f1) + " (" + signed((last.u - first.u) / first.u * 100, f2) + "%)" : null, last.u > first.u),
+      kpi("ATM IV " + last.d, f2(atmIv(last)), days.length > 1 ? signed(atmIv(last) - atmIv(first), f2) + " vol" : null, atmIv(last) > atmIv(first))
+    );
     const keep = (p) => side === "put" ? p.x < 50 : side === "call" ? p.x > 50 : true;
-    legend("lg-fly", days.map((d, i) => ({ name: d.d, color: color(i) })));
+    legend("lg-fly", days.map((d, i) => ({ name: d.d + " " + (side === "all" ? "full smile" : side), color: color(i) })));
     const cats = flies(first).map((p) => p.x).filter((x) => keep({ x }));
     chart(document.getElementById("ch-fly"), {
       series: days.map((day, i) => ({ name: day.d, color: color(i), pts: flies(day).filter(keep) })),
-      cats, every: 2, xfmt: flyName, yfmt: f3, yTitle: "IV Fly"
+      cats, every: 1, xfmt: flyName, yfmt: f4, yTitle: "IV fly"
     });
     const title = document.getElementById("s60-flychg-title");
     const el = document.getElementById("ch-flychg");
     const notes = document.getElementById("s60-fly-notes");
     notes.replaceChildren();
+    const add = (t) => {
+      const li = document.createElement("li");
+      li.textContent = t;
+      notes.appendChild(li);
+    };
+    paint(document.getElementById("s60-fly-tbl"), headers(days, "Delta"), cats.map((x) => [
+      { t: flyName(x) },
+      ...vals(days, (d) => flies(d).find((p) => p.x === x).y, f4)
+    ]));
     if (days.length < 2) {
       title.textContent = "Fly value change";
       el.replaceChildren();
+      add("Add another date to compare flies.");
       return;
     }
     title.textContent = `Fly Value Change: ${last.d} vs ${first.d}`;
     const a = flies(first).filter(keep);
     const b = flies(last).filter(keep);
     chart(el, {
-      series: [{ name: "Change", color: PAL[0], bars: true, pts: a.map((p, i) => ({ x: p.x, y: b[i].y - p.y })) }],
-      cats, every: 2, xfmt: flyName, yfmt: (v) => signed(v, f3), zero: true, yTitle: "Δ IV Fly"
+      series: [{ name: "Change", color: UP, bars: true, pts: a.map((p, i) => barPt(p.x, b[i].y - p.y)) }],
+      cats, every: 1, xfmt: flyName, yfmt: (v) => signed(v, f4), zero: true, yTitle: "Δ IV fly"
     });
+    const at = (level, wing) => {
+      const x = wing === "put" ? level : 100 - level;
+      const ai = flies(first).find((p) => p.x === x).y;
+      const bi = flies(last).find((p) => p.x === x).y;
+      return bi - ai;
+    };
+    const p30 = at(30, "put");
+    const p45 = at(45, "put");
+    const c25 = at(25, "call");
+    add(`30Δ put fly ${p30 < 0 ? "decreased" : "increased"} by ${f4(Math.abs(p30))} over the selected period.`);
+    if (Math.abs(p45) >= 0.05) add(`45Δ put fly changed materially (${signed(p45, f4)}), indicating a shift in curvature between 40Δ, 45Δ, and ATM.`);
+    else add(`45Δ put fly changed ${signed(p45, f4)}.`);
+    add(`25Δ call fly became ${c25 >= 0 ? "more positive" : "more negative"} (change: ${signed(c25, f4)}).`);
     const diffs = a.map((p, i) => ({ x: p.x, y: b[i].y - p.y }));
-    const biggest = diffs.reduce((m, p) => Math.abs(p.y) > Math.abs(m.y) ? p : m, diffs[0]);
-    const puts = diffs.filter((p) => p.x < 50);
-    const calls = diffs.filter((p) => p.x > 50);
-    const putMag = puts.reduce((s, p) => s + Math.abs(p.y), 0);
-    const callMag = calls.reduce((s, p) => s + Math.abs(p.y), 0);
-    const lines = [
-      `${flyName(biggest.x)} fly changed ${signed(biggest.y, f3)}, the largest move on this side.`,
-      putMag && callMag ? (putMag > callMag ? "Put-side fly curvature changed more than the call side." : "Call-side fly curvature changed more than the put side.") : ""
-    ].filter(Boolean);
-    lines.forEach((t) => {
-      const p = document.createElement("p");
-      p.className = "s60-note";
-      p.textContent = t;
-      notes.appendChild(p);
-    });
+    const putMag = diffs.filter((p) => p.x < 50).reduce((s, p) => s + Math.abs(p.y), 0);
+    const callMag = diffs.filter((p) => p.x > 50).reduce((s, p) => s + Math.abs(p.y), 0);
+    if (putMag && callMag) add(putMag > callMag
+      ? "Put-side fly curvature changed substantially more than call-side fly curvature."
+      : "Call-side fly curvature changed substantially more than put-side fly curvature.");
   }
 
   function renderFix(days) {
+    renderFlyDays("fix");
     const side = document.getElementById("s60-fix-side").value;
     const first = days[0];
     const last = days[days.length - 1];
+    const rr400 = (d) => siv(d, -400) - siv(d, 400);
+    const fly = (d) => (siv(d, -700) + siv(d, 700)) / 2 - atmIv(d);
     const box = document.getElementById("s60-fix-kpis");
     box.replaceChildren();
-    const rr = (d) => siv(d, -400) - siv(d, 400);
-    const fly = (d) => (siv(d, -700) + siv(d, 700)) / 2 - atmIv(d);
     box.append(
-      kpi("Spot change", f1(last.u), days.length > 1 ? signed(last.u - first.u, f1) : null, last.u > first.u),
-      kpi("ATM IV", f2(atmIv(last)) + "%", days.length > 1 ? signed(atmIv(last) - atmIv(first), f2) + " vol" : null, atmIv(last) > atmIv(first)),
-      kpi("RR ATM±400", f2(rr(last)) + " vol", days.length > 1 ? signed(rr(last) - rr(first), f2) + " pts" : null, rr(last) > rr(first)),
-      kpi("ATM fly proxy", f2(fly(last)), days.length > 1 ? signed(fly(last) - fly(first), f3) + " pts" : null, fly(last) > fly(first))
+      kpi("Spot change", f1(last.u), days.length > 1 ? signed(last.u - first.u, f1) + " (" + signed((last.u - first.u) / first.u * 100, f2) + "%)" : null, last.u > first.u),
+      kpi("ATM IV change", f2(atmIv(last)) + "%", days.length > 1 ? signed(atmIv(last) - atmIv(first), f4) + " vol" : null, atmIv(last) > atmIv(first)),
+      kpi("Skew — RR ATM±400", f4(rr400(last)) + "%", days.length > 1 ? signed(rr400(last) - rr400(first), f4) + " pts" : null, rr400(last) > rr400(first)),
+      kpi("Curvature — ATM fly", f4(fly(last)) + "%", days.length > 1 ? signed(fly(last) - fly(first), f4) + " pts" : null, fly(last) > fly(first))
     );
     const keep = (p) => side === "put" ? p.x < 0 : side === "call" ? p.x > 0 : p.x !== 0;
     const cats = fixedFlies(first).map((p) => p.x).filter((x) => keep({ x }));
-    legend("lg-fix", days.map((d, i) => ({ name: d.d, color: color(i) })));
+    const series = [];
+    const legs = [];
+    days.forEach((day, i) => {
+      if (side !== "call") {
+        series.push({ name: day.d + " Put", color: color(i), pts: fixedFlies(day).filter((p) => p.x < 0) });
+        legs.push({ name: day.d + " Put", color: color(i) });
+      }
+      if (side !== "put") {
+        series.push({ name: day.d + " Call", color: color(i), dash: side === "all", pts: fixedFlies(day).filter((p) => p.x > 0) });
+        legs.push({ name: day.d + " Call", color: color(i) });
+      }
+    });
+    legend("lg-fix", legs);
     chart(document.getElementById("ch-fix"), {
-      series: days.map((day, i) => ({ name: day.d, color: color(i), pts: fixedFlies(day).filter(keep) })),
-      cats, every: 2, xfmt: strikeName, yfmt: f3, yTitle: "IV Fly (vol pts)"
+      series, cats, every: 1, xfmt: strikeName, yfmt: f4, yTitle: "IV fly (vol pts)"
     });
     const title = document.getElementById("s60-fixchg-title");
     const el = document.getElementById("ch-fixchg");
+    paint(document.getElementById("s60-fix-tbl"), headers(days, "Offset"), cats.map((x) => [
+      { t: strikeName(x) },
+      ...vals(days, (d) => fixedFlies(d).find((p) => p.x === x).y, f4)
+    ]));
     if (days.length < 2) {
       title.textContent = "Fly value change";
       el.replaceChildren();
@@ -513,9 +798,72 @@
     const a = fixedFlies(first).filter(keep);
     const b = fixedFlies(last).filter(keep);
     chart(el, {
-      series: [{ name: "Δ Fly", color: PAL[0], bars: true, pts: a.map((p, i) => ({ x: p.x, y: b[i].y - p.y })) }],
-      cats, every: 2, xfmt: strikeName, yfmt: (v) => signed(v, f3), zero: true, yTitle: "Change in IV Fly"
+      series: [{ name: "Δ Fly", color: UP, bars: true, pts: a.map((p, i) => barPt(p.x, b[i].y - p.y)) }],
+      cats, every: 1, xfmt: strikeName, yfmt: (v) => signed(v, f4), zero: true, yTitle: "Change in IV fly"
     });
+  }
+
+  function spreadPairs(wing) {
+    const out = [];
+    if (wing !== "put") {
+      for (let k = 0; k <= 800; k += 100) out.push({ wing: "call", a: k, b: k + 100 });
+    }
+    if (wing !== "call") {
+      for (let k = 100; k <= 800; k += 100) out.push({ wing: "put", a: -k, b: -(k + 100) });
+    }
+    return out;
+  }
+  function spr(day, pair) { return prem(day, pair.a) - prem(day, pair.b); }
+  function sprName(pair) { return strikeName(pair.a) + " / " + strikeName(pair.b); }
+
+  function renderSpr(days) {
+    const wing = document.getElementById("s60-spr-wing").value;
+    const first = days[0];
+    const last = days[days.length - 1];
+    const box = document.getElementById("s60-spr-kpis");
+    box.replaceChildren();
+    const callNear = { a: 100, b: 200 };
+    const putNear = { a: -100, b: -200 };
+    box.append(
+      kpi("Spot", f1(last.u), days.length > 1 ? signed(last.u - first.u, f1) + " (" + signed((last.u - first.u) / first.u * 100, f2) + "%)" : null, last.u > first.u),
+      kpi("ATM IV", f2(atmIv(last)) + "%", days.length > 1 ? signed(atmIv(last) - atmIv(first), f4) + " vol" : null, atmIv(last) > atmIv(first)),
+      kpi("ATM+100/200 call spread", "$" + f2(spr(last, callNear)), days.length > 1 ? signed(spr(last, callNear) - spr(first, callNear), f2) + " pts" : null, spr(last, callNear) > spr(first, callNear)),
+      kpi("ATM−100/200 put spread", "$" + f2(spr(last, putNear)), days.length > 1 ? signed(spr(last, putNear) - spr(first, putNear), f2) + " pts" : null, spr(last, putNear) > spr(first, putNear))
+    );
+    function wingChart(which, lg, ch, chg, titleId) {
+      const pairs = spreadPairs(which);
+      const cats = pairs.map(sprName);
+      const show = wing === "all" || wing === which;
+      document.getElementById(ch).style.display = show ? "" : "none";
+      document.getElementById(chg).style.display = show ? "" : "none";
+      if (!show) return;
+      legend(lg, days.map((d, i) => ({ name: d.d, color: color(i) })));
+      chart(document.getElementById(ch), {
+        series: days.map((day, i) => ({ name: day.d, color: color(i), pts: pairs.map((p) => ({ x: sprName(p), y: spr(day, p) })) })),
+        cats, every: 1, yfmt: (v) => d3.format(",.2f")(v), yTitle: "Spread ($)"
+      });
+      const title = document.getElementById(titleId);
+      if (days.length < 2) {
+        title.textContent = "Spread change";
+        document.getElementById(chg).replaceChildren();
+        return;
+      }
+      title.textContent = `Premium spread change: ${last.d} vs ${first.d}`;
+      chart(document.getElementById(chg), {
+        series: [{
+          name: "Change", color: UP, bars: true,
+          pts: pairs.map((p) => barPt(sprName(p), spr(last, p) - spr(first, p)))
+        }],
+        cats, every: 1, yfmt: (v) => signed(v, f2), zero: true, yTitle: "Change ($)"
+      });
+    }
+    wingChart("call", "lg-sprc", "ch-sprc", "ch-sprcchg", "s60-sprc-title");
+    wingChart("put", "lg-sprp", "ch-sprp", "ch-sprpchg", "s60-sprp-title");
+    const pairs = spreadPairs(wing);
+    paint(document.getElementById("s60-spr-tbl"), headers(days, "Spread"), pairs.map((p) => [
+      { t: (p.wing === "call" ? "Call " : "Put ") + sprName(p) },
+      ...vals(days, (d) => spr(d, p), f2)
+    ]));
   }
 
   function activePanel() {
@@ -526,15 +874,26 @@
     selected = sorted();
     renderPicker();
     const days = selected.map((d) => BY.get(d));
+    const first = days[0];
+    const last = days[days.length - 1];
+    const take = document.getElementById("s60-take");
+    if (days.length === 1) {
+      take.textContent = first.d + " · spot " + f1(first.u) + " · ATM IV " + f2(atmIv(first)) + "%";
+    } else {
+      const spot = last.u - first.u;
+      take.textContent = first.d + " → " + last.d + " · " + days.length + " sessions · spot " + signed(spot, f1)
+        + " · ATM IV " + f2(atmIv(last)) + "% (" + signed(atmIv(last) - atmIv(first), f2) + " vol)";
+    }
     const panel = activePanel();
     if (panel === "p-daily") renderDaily(days);
     if (panel === "p-hist") renderHist();
-    if (panel === "p-regime") renderRegime(days);
-    if (panel === "p-delta") renderDelta();
+    if (panel === "p-regime") renderRegime();
+    if (panel === "p-delta") renderDelta(days);
     if (panel === "p-struct") renderStruct(days);
-    if (panel === "p-ts") renderTs();
+    if (panel === "p-ts") renderTs(days);
     if (panel === "p-fly") renderFly(days);
     if (panel === "p-fix") renderFix(days);
+    if (panel === "p-spr") renderSpr(days);
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
@@ -568,22 +927,58 @@
     filter = ev.target.value;
     renderPicker();
   });
-  document.getElementById("s60-view").addEventListener("change", (ev) => { view = ev.target.value; render(); });
-  ["s60-hist-delta", "s60-d1", "s60-d2", "s60-metric", "s60-fly-side", "s60-fix-side"].forEach((id) => {
+  document.querySelectorAll("[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      view = btn.dataset.view;
+      document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+      render();
+    });
+  });
+  document.getElementById("s60-cat").addEventListener("change", () => { syncMetrics(); render(); });
+  document.getElementById("s60-reg-date").addEventListener("change", (ev) => { regimeDate = ev.target.value; render(); });
+  function hookFlyNav(kind) {
+    const st = flyNav[kind];
+    const p = kind === "delta"
+      ? ["s60-fd-date", "s60-fd-prev", "s60-fd-next", "s60-fc-a", "s60-fc-b", "s60-fc-prev", "s60-fc-next"]
+      : ["s60-xd-date", "s60-xd-prev", "s60-xd-next", "s60-xc-a", "s60-xc-b", "s60-xc-prev", "s60-xc-next"];
+    document.getElementById(p[1]).addEventListener("click", () => { st.day = stepDate(st.day, -1); render(); });
+    document.getElementById(p[2]).addEventListener("click", () => { st.day = stepDate(st.day, 1); render(); });
+    document.getElementById(p[0]).addEventListener("change", (ev) => { st.day = ev.target.value; render(); });
+    document.getElementById(p[3]).addEventListener("change", (ev) => { st.a = ev.target.value; render(); });
+    document.getElementById(p[4]).addEventListener("change", (ev) => { st.b = ev.target.value; render(); });
+    document.getElementById(p[5]).addEventListener("click", () => {
+      if (DATES.indexOf(st.a) <= 0 || DATES.indexOf(st.b) <= 0) return;
+      st.a = stepDate(st.a, -1);
+      st.b = stepDate(st.b, -1);
+      render();
+    });
+    document.getElementById(p[6]).addEventListener("click", () => {
+      if (DATES.indexOf(st.a) >= DATES.length - 1 || DATES.indexOf(st.b) >= DATES.length - 1) return;
+      st.a = stepDate(st.a, 1);
+      st.b = stepDate(st.b, 1);
+      render();
+    });
+  }
+  hookFlyNav("delta");
+  hookFlyNav("fix");
+
+  document.getElementById("s60-reg-prev").addEventListener("click", () => {
+    const i = DATES.indexOf(regimeDate);
+    if (i > 0) { regimeDate = DATES[i - 1]; render(); }
+  });
+  document.getElementById("s60-reg-next").addEventListener("click", () => {
+    const i = DATES.indexOf(regimeDate);
+    if (i < DATES.length - 1) { regimeDate = DATES[i + 1]; render(); }
+  });
+  ["s60-hist-delta", "s60-d1", "s60-d2", "s60-metric", "s60-fly-side", "s60-fix-side", "s60-spr-wing"].forEach((id) => {
     document.getElementById(id).addEventListener("change", render);
   });
 
   fillSelect("s60-hist-delta", DELTA_LEVELS.map((n) => [String(n), n + "Δ"]), "25");
-  fillSelect("s60-d1", DX.map((x) => [String(x), deltaName(x)]), "25");
-  fillSelect("s60-d2", DX.map((x) => [String(x), deltaName(x)]), "75");
-  fillSelect("s60-metric", [
-    ["spot", "Spot"],
-    ["atm", "ATM IV"],
-    ["p25", "25Δ put IV"],
-    ["c25", "25Δ call IV"],
-    ["rr25", "25Δ risk reversal"],
-    ["fly", "ATM fly proxy"]
-  ], "spot");
+  fillSelect("s60-d1", DELTA_LEVELS.map((n) => [String(n), n + "Δ"]), "5");
+  fillSelect("s60-d2", DELTA_LEVELS.map((n) => [String(n), n + "Δ"]), "10");
+  fillSelect("s60-cat", ["Market & core", "Skew", "Risk reversals", "Butterflies", "Put spreads", "Call spreads"].map((c) => [c, c]), "Market & core");
+  syncMetrics();
 
   render();
   let timer;

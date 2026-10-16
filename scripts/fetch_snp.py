@@ -70,6 +70,7 @@ def main():
         strike_rows = [(off, r) for off, r in strike_rows if off is not None]
         offs = [off for off, _ in strike_rows]
         siv = [round(r["iv_2"] * 100, 4) for _, r in strike_rows]
+        sp = [round(r["premium_2"], 4) for _, r in strike_rows]
         if strike_offsets is None:
             strike_offsets = offs
         elif offs != strike_offsets:
@@ -82,6 +83,7 @@ def main():
             "atm": meta["atm_strike"],
             "iv": div,
             "siv": siv,
+            "sp": sp,
         })
     out = {
         "source": "SNP 60-DTE ladder (nearest 60 DTE, 16:00 EOD, SPXW)",
