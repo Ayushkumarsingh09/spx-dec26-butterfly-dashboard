@@ -19,6 +19,7 @@
           <nav class="fx-nav" aria-label="Dashboards">
             <a href="smile.html#month" id="nav-month">Monthly review</a>
             <a href="smile.html#atm" id="nav-atm">ATM offsets</a>
+            <a href="smile.html#changes" id="nav-changes">Daily changes</a>
             <a href="index.html">Butterfly lab</a>
             <a href="smile.html" id="nav-smile" aria-current="page">60-DTE smile</a>
           </nav>
@@ -61,6 +62,7 @@
       <div class="s60-tabs" role="tablist">
         <button type="button" role="tab" data-panel="p-month" aria-selected="false">Monthly review</button>
         <button type="button" role="tab" data-panel="p-atm" aria-selected="false">ATM offsets</button>
+        <button type="button" role="tab" data-panel="p-chg" aria-selected="false">Daily changes</button>
         <button type="button" role="tab" data-panel="p-daily" aria-selected="true">Daily Smile</button>
         <button type="button" role="tab" data-panel="p-hist" aria-selected="false">Historical Smile</button>
         <button type="button" role="tab" data-panel="p-regime" aria-selected="false">Volatility Regime Analysis</button>
@@ -421,6 +423,8 @@
           <div class="fx-bar">
             <h2>Monthly review</h2>
             <div class="s60-toolbar">
+              <button class="fx-reset" id="s60-month-prev" type="button">Previous month</button>
+              <button class="fx-reset" id="s60-month-next" type="button">Next month</button>
               <label class="s60-label" for="s60-month">Month</label>
               <select id="s60-month" class="s60-select s60-date" aria-label="Month"></select>
             </div>
@@ -493,7 +497,7 @@
               <select id="s60-atm-month" class="s60-select s60-date" aria-label="Month"></select>
             </div>
           </div>
-          <p class="fx-note">Implied vol and premium at each strike relative to that session’s ATM, from ATM −900 to ATM +900 in steps of 100. The first line is the level. The line under it is the change from the previous session: green is an increase, red is a decrease.</p>
+          <p class="fx-note">Implied vol, premium, fly IV, and fly premium at each strike relative to that session’s ATM, from ATM −900 to ATM +900 in steps of 100. Fly IV is the local butterfly on implied vol, and fly premium is the same butterfly on the premium. The first line is the level. The line under it is the change from the previous session: green is an increase, red is a decrease.</p>
           <div class="fx-detail-wrap s60-month-wrap">
             <table class="fx-tbl s60-month-tbl" id="s60-atm-tbl"><thead></thead><tbody></tbody></table>
           </div>
@@ -528,6 +532,98 @@
             <h3>Premium change</h3>
             <div class="fx-legend" id="lg-a-pxchg"></div>
             <div class="s60-chart fx-chart" id="ch-a-pxchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Fly IV</h3>
+            <div class="fx-legend" id="lg-a-fiv"></div>
+            <div class="s60-chart fx-chart" id="ch-a-fiv"></div>
+            <h3>Fly IV change</h3>
+            <div class="fx-legend" id="lg-a-fivchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-fivchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Fly premium</h3>
+            <div class="fx-legend" id="lg-a-fpx"></div>
+            <div class="s60-chart fx-chart" id="ch-a-fpx"></div>
+            <h3>Fly premium change</h3>
+            <div class="fx-legend" id="lg-a-fpxchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-fpxchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Curves</h3>
+            <p class="fx-note">Turn any offset on or off. The choice applies to every chart above, so a combination can be checked on its own.</p>
+            <div class="s60-toggles" id="s60-atm-toggles"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="s60-panel" id="p-chg">
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Daily changes</h2>
+            <div class="s60-toolbar">
+              <button class="fx-reset" id="s60-chg-prev" type="button">Previous month</button>
+              <button class="fx-reset" id="s60-chg-next" type="button">Next month</button>
+              <label class="s60-label" for="s60-chg-month">Month</label>
+              <select id="s60-chg-month" class="s60-select s60-date" aria-label="Month"></select>
+            </div>
+          </div>
+          <p class="fx-note">Each bar is one session’s change from the previous session. Green is an increase and red is a decrease. Slide the month to move through the history.</p>
+          <div class="s60-block">
+            <h3>Spot</h3>
+            <div class="s60-chart fx-chart s60-short" id="ch-c-spot"></div>
+          </div>
+          <div class="s60-block">
+            <h3>ATM vol</h3>
+            <div class="s60-chart fx-chart s60-short" id="ch-c-atm"></div>
+          </div>
+          <div class="s60-block">
+            <h3>ATM premium</h3>
+            <div class="s60-chart fx-chart s60-short" id="ch-c-prem"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Strike cutoff implied vol</h3>
+            <p class="fx-note">ATM −200, ATM −100, ATM +100 and ATM +200.</p>
+            <div class="s60-hgrid" id="s60-c-iv"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Strike cutoff premium</h3>
+            <div class="s60-hgrid" id="s60-c-px"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Fly premium</h3>
+              <div class="s60-toolbar">
+                <label class="s60-label" for="s60-chg-fly">Deltas</label>
+                <select id="s60-chg-fly" class="s60-select" aria-label="Fly premium deltas">
+                  <option value="key">10Δ, 25Δ and ATM</option>
+                  <option value="all">All deltas</option>
+                </select>
+              </div>
+            </div>
+            <div class="s60-hgrid" id="s60-c-fly"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>ATM offset fly IV</h3>
+              <div class="s60-toolbar">
+                <label class="s60-label" for="s60-chg-off">Offsets</label>
+                <select id="s60-chg-off" class="s60-select" aria-label="ATM offset flies">
+                  <option value="near">ATM, ±100 and ±200</option>
+                  <option value="all">All offsets</option>
+                </select>
+              </div>
+            </div>
+            <div class="s60-hgrid" id="s60-c-fiv"></div>
+          </div>
+          <div class="s60-block">
+            <h3>ATM offset fly premium</h3>
+            <div class="s60-hgrid" id="s60-c-fpx"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Curves</h3>
+            <p class="fx-note">Turn any histogram on or off to compare a combination.</p>
+            <div class="s60-toggles" id="s60-chg-toggles"></div>
           </div>
         </div>
       </section>

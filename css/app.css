@@ -467,6 +467,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: color-mix(in srgb, var(--color-fg) 7%, var(--color-panel));
 }
 .s60-chg { font-size: 0.75rem; line-height: 1.25; color: var(--color-fg-muted); }
+.s60-toggles { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.s60-toggles label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cds-font-size-caption); }
+.s60-toggles i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.s60-hgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+@media (max-width: 900px) { .s60-hgrid { grid-template-columns: 1fr; } }
+.s60-chart.s60-short { min-height: 220px; }
 .s60-chg.fx-up { color: #1f9d55; font-weight: 600; }
 .s60-chg.fx-dn { color: #d64545; font-weight: 600; }
 .fx-detail-wrap thead th {

@@ -263,6 +263,16 @@
     for (let i = 1; i < SX.length - 1; i++) out.push({ x: SX[i], y: (day.siv[i - 1] + day.siv[i + 1]) / 2 - day.siv[i] });
     return out;
   }
+  function strikeFly(day, off, key) {
+    const i = SX.indexOf(off);
+    if (i <= 0 || i >= SX.length - 1) return null;
+    const wing = day[key];
+    return (wing[i - 1] + wing[i + 1]) / 2 - wing[i];
+  }
+  function strikeFlyIv(day, off) { return strikeFly(day, off, "siv"); }
+  function strikeFlyPx(day, off) { return strikeFly(day, off, "sp"); }
+  const atmCurveOff = new Set();
+  const chgOff = new Set();
   function sideKeep(x, side, atm) {
     if (side === "put") return x < 0 || (atm && x === atm);
     if (side === "call") return x > 0 || (atm && x === atm);
@@ -1077,6 +1087,14 @@
     SX.forEach((off) => {
       rows.push({ group: "Premium", name: offsetName(off) + " premium", fn: (d) => prem(d, off), fmt: f2, cls: off === 0 ? "atm" : "" });
     });
+    SX.forEach((off) => {
+      if (strikeFlyIv(DAYS[0], off) == null) return;
+      rows.push({ group: "Fly IV", name: offsetName(off) + " fly IV", fn: (d) => strikeFlyIv(d, off), fmt: f4, cls: off === 0 ? "atm" : "" });
+    });
+    SX.forEach((off) => {
+      if (strikeFlyPx(DAYS[0], off) == null) return;
+      rows.push({ group: "Fly premium", name: offsetName(off) + " fly premium", fn: (d) => strikeFlyPx(d, off), fmt: f2, cls: off === 0 ? "atm" : "" });
+    });
     return rows;
   }
 
@@ -1091,6 +1109,7 @@
 
   function renderMonth() {
     const days = ensureMonth("s60-month");
+    syncMonthButtons();
     paintDayTable(document.getElementById("s60-month-tbl"), days, monthRows());
 
     const cats = days.map((d) => d.d);
@@ -1151,16 +1170,29 @@
       color: FLY_PAL[i % FLY_PAL.length],
       fn: (d) => read(d, off)
     }));
+    const showCurve = (el, lg, items) => {
+      if (lg) legend(lg, items.map((s) => ({ name: s.name, color: s.color })));
+      if (!items.length) {
+        el.classList.add("fx-fail");
+        el.replaceChildren();
+        el.textContent = "Turn on at least one curve.";
+        return false;
+      }
+      el.classList.remove("fx-fail");
+      return true;
+    };
     const levelChart = (id, lg, items, yfmt, yTitle) => {
-      legend(lg, items.map((s) => ({ name: s.name, color: s.color })));
-      chart(document.getElementById(id), {
+      const el = document.getElementById(id);
+      if (!showCurve(el, lg, items)) return;
+      chart(el, {
         series: items.map((s) => ({ name: s.name, color: s.color, pts: days.map((d) => ({ x: d.d, y: s.fn(d) })) })),
         cats, every, xfmt, yfmt, yTitle
       });
     };
     const changeChart = (id, lg, items, yfmt, yTitle) => {
-      legend(lg, items.map((s) => ({ name: s.name, color: s.color })));
-      chart(document.getElementById(id), {
+      const el = document.getElementById(id);
+      if (!showCurve(el, lg, items)) return;
+      chart(el, {
         series: items.map((s) => ({
           name: s.name, color: s.color,
           pts: days.map((d) => {
@@ -1171,12 +1203,166 @@
         cats, every, xfmt, yfmt: (v) => signed(v, yfmt), zero: true, yTitle
       });
     };
-    const iv = series(siv);
-    const px = series(prem);
+    const visible = picked.filter((off) => !atmCurveOff.has(off));
+    const iv = series(siv).filter((s) => visible.some((off) => offsetName(off) === s.name));
+    const px = series(prem).filter((s) => visible.some((off) => offsetName(off) === s.name));
+    const flyOff = visible.filter((off) => strikeFlyIv(days[0], off) != null);
+    const fiv = series((d, off) => strikeFlyIv(d, off)).filter((s) => flyOff.some((off) => offsetName(off) === s.name));
+    const fpx = series((d, off) => strikeFlyPx(d, off)).filter((s) => flyOff.some((off) => offsetName(off) === s.name));
     levelChart("ch-a-iv", "lg-a-iv", iv, f2, "Implied vol (%)");
     changeChart("ch-a-ivchg", "lg-a-ivchg", iv, f2, "IV change");
     levelChart("ch-a-px", "lg-a-px", px, f2, "Premium");
     changeChart("ch-a-pxchg", "lg-a-pxchg", px, f2, "Premium change");
+    levelChart("ch-a-fiv", "lg-a-fiv", fiv, f4, "Fly IV");
+    changeChart("ch-a-fivchg", "lg-a-fivchg", fiv, f4, "Fly IV change");
+    levelChart("ch-a-fpx", "lg-a-fpx", fpx, f2, "Fly premium");
+    changeChart("ch-a-fpxchg", "lg-a-fpxchg", fpx, f2, "Fly premium change");
+    paintToggles(document.getElementById("s60-atm-toggles"), picked.map((off, i) => ({
+      key: off,
+      name: offsetName(off),
+      color: FLY_PAL[i % FLY_PAL.length]
+    })), atmCurveOff);
+  }
+
+  function monthKeys() {
+    const keys = [];
+    DATES.forEach((d) => {
+      const key = d.slice(0, 7);
+      if (keys[keys.length - 1] !== key) keys.push(key);
+    });
+    return keys;
+  }
+
+  function shiftMonth(step) {
+    const keys = monthKeys();
+    if (!monthKey) monthKey = sorted()[sorted().length - 1].slice(0, 7);
+    const i = keys.indexOf(monthKey);
+    if (i < 0) return;
+    const j = i + step;
+    if (j < 0 || j >= keys.length) return;
+    monthKey = keys[j];
+    render();
+  }
+
+  function syncMonthButtons() {
+    const keys = monthKeys();
+    const i = keys.indexOf(monthKey);
+    [["s60-month-prev", "s60-chg-prev"], ["s60-month-next", "s60-chg-next"]].forEach((pair, side) => {
+      const atEnd = side === 0 ? i <= 0 : i < 0 || i >= keys.length - 1;
+      pair.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = atEnd;
+      });
+    });
+  }
+
+  function paintToggles(host, items, hidden) {
+    host.replaceChildren();
+    const button = (text, fill) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "fx-reset";
+      el.textContent = text;
+      el.addEventListener("click", () => { fill(); render(); });
+      return el;
+    };
+    host.append(
+      button("All on", () => items.forEach((it) => hidden.delete(it.key))),
+      button("All off", () => items.forEach((it) => hidden.add(it.key)))
+    );
+    items.forEach((it) => {
+      const label = document.createElement("label");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = !hidden.has(it.key);
+      box.addEventListener("change", () => {
+        if (box.checked) hidden.delete(it.key);
+        else hidden.add(it.key);
+        render();
+      });
+      label.appendChild(box);
+      if (it.color) {
+        const sw = document.createElement("i");
+        sw.style.background = it.color;
+        label.appendChild(sw);
+      }
+      label.appendChild(document.createTextNode(it.name));
+      host.appendChild(label);
+    });
+  }
+
+  function hist(el, days, fn, yfmt, yTitle) {
+    chart(el, {
+      h: 240,
+      series: [{
+        name: "Change", color: UP, bars: true,
+        pts: days.map((d) => {
+          const prev = sessionBefore(d.d);
+          if (!prev) return { x: d.d, y: null };
+          return barPt(d.d, fn(d) - fn(prev));
+        })
+      }],
+      cats: days.map((d) => d.d),
+      every: Math.max(1, Math.ceil(days.length / 8)),
+      xfmt: (d) => d.slice(8),
+      yfmt: (v) => signed(v, yfmt),
+      zero: true,
+      yTitle
+    });
+  }
+
+  function histGrid(host, days, items, yfmt, yTitle) {
+    host.replaceChildren();
+    items.forEach((item) => {
+      const block = document.createElement("div");
+      const title = document.createElement("h3");
+      title.textContent = item.name;
+      const el = document.createElement("div");
+      el.className = "s60-chart fx-chart s60-short";
+      block.append(title, el);
+      host.appendChild(block);
+      hist(el, days, item.fn, yfmt, yTitle);
+    });
+  }
+
+  function renderChanges() {
+    const days = ensureMonth("s60-chg-month");
+    syncMonthButtons();
+    const cuts = [-200, -100, 100, 200];
+    const deltaMode = document.getElementById("s60-chg-fly").value;
+    const deltas = deltaMode === "all" ? FLY_X.slice() : [10, 25, 50, 75, 90];
+    const offMode = document.getElementById("s60-chg-off").value;
+    const flyOffs = offMode === "all" ? SX.filter((off) => strikeFlyIv(DAYS[0], off) != null) : [-200, -100, 0, 100, 200];
+    const one = (key, el, fn, fmt, title) => {
+      const block = el.parentElement;
+      block.hidden = chgOff.has(key);
+      if (!chgOff.has(key)) hist(el, days, fn, fmt, title);
+    };
+    const grid = (host, items, fmt, title) => {
+      const shown = items.filter((it) => !chgOff.has(it.key));
+      host.parentElement.hidden = items.length > 0 && shown.length === 0;
+      if (shown.length) histGrid(host, days, shown, fmt, title);
+      else host.replaceChildren();
+    };
+    one("spot", document.getElementById("ch-c-spot"), (d) => d.u, f1, "Spot change");
+    one("atm", document.getElementById("ch-c-atm"), atmIv, f2, "ATM vol change");
+    one("prem", document.getElementById("ch-c-prem"), (d) => prem(d, 0), f2, "ATM premium change");
+    const ivItems = cuts.map((off) => ({ key: "iv:" + off, name: offsetName(off) + " IV", fn: (d) => siv(d, off) }));
+    const pxItems = cuts.map((off) => ({ key: "px:" + off, name: offsetName(off) + " premium", fn: (d) => prem(d, off) }));
+    const flyItems = deltas.map((x) => ({ key: "df:" + x, name: flyName(x) + " fly premium", fn: (d) => flyPx(d, x) }));
+    const fivItems = flyOffs.map((off) => ({ key: "fiv:" + off, name: offsetName(off) + " fly IV", fn: (d) => strikeFlyIv(d, off) }));
+    const fpxItems = flyOffs.map((off) => ({ key: "fpx:" + off, name: offsetName(off) + " fly premium", fn: (d) => strikeFlyPx(d, off) }));
+    grid(document.getElementById("s60-c-iv"), ivItems, f2, "IV change");
+    grid(document.getElementById("s60-c-px"), pxItems, f2, "Premium change");
+    grid(document.getElementById("s60-c-fly"), flyItems, f2, "Fly premium change");
+    grid(document.getElementById("s60-c-fiv"), fivItems, f4, "Fly IV change");
+    grid(document.getElementById("s60-c-fpx"), fpxItems, f2, "Fly premium change");
+    paintToggles(document.getElementById("s60-chg-toggles"), [
+      { key: "spot", name: "Spot" },
+      { key: "atm", name: "ATM vol" },
+      { key: "prem", name: "ATM premium" },
+      ...ivItems, ...pxItems, ...flyItems, ...fivItems, ...fpxItems
+    ], chgOff);
   }
 
   function activePanel() {
@@ -1210,6 +1396,7 @@
     if (panel === "p-prem") { renderPrem("delta"); renderPrem("strike"); }
     if (panel === "p-month") renderMonth();
     if (panel === "p-atm") renderAtm();
+    if (panel === "p-chg") renderChanges();
   }
 
   function showPanel(id) {
@@ -1219,9 +1406,10 @@
     document.querySelectorAll(".s60-panel").forEach((p) => p.classList.toggle("on", p.id === id));
     const pages = {
       "p-month": { link: "nav-month", hash: "#month", title: "Monthly review", doc: "SPX monthly review" },
-      "p-atm": { link: "nav-atm", hash: "#atm", title: "ATM offsets", doc: "SPX ATM offsets" }
+      "p-atm": { link: "nav-atm", hash: "#atm", title: "ATM offsets", doc: "SPX ATM offsets" },
+      "p-chg": { link: "nav-changes", hash: "#changes", title: "Daily changes", doc: "SPX daily changes" }
     };
-    ["nav-month", "nav-atm", "nav-smile"].forEach((nid) => document.getElementById(nid).removeAttribute("aria-current"));
+    ["nav-month", "nav-atm", "nav-changes", "nav-smile"].forEach((nid) => document.getElementById(nid).removeAttribute("aria-current"));
     const spec = pages[id];
     if (spec) {
       document.getElementById(spec.link).setAttribute("aria-current", "page");
@@ -1232,7 +1420,7 @@
       document.getElementById("nav-smile").setAttribute("aria-current", "page");
       document.querySelector(".fx-brand h1").textContent = "60-DTE smile";
       document.title = "SPX 60-DTE Smile Analysis";
-      if (location.hash === "#month" || location.hash === "#atm") {
+      if (location.hash === "#month" || location.hash === "#atm" || location.hash === "#changes") {
         history.replaceState(null, "", location.pathname + location.search);
       }
     }
@@ -1249,6 +1437,10 @@
   document.getElementById("nav-atm").addEventListener("click", (ev) => {
     ev.preventDefault();
     showPanel("p-atm");
+  });
+  document.getElementById("nav-changes").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    showPanel("p-chg");
   });
   document.getElementById("nav-smile").addEventListener("click", (ev) => {
     ev.preventDefault();
@@ -1291,6 +1483,13 @@
   document.getElementById("s60-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
   document.getElementById("s60-atm-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
   document.getElementById("s60-atm-span").addEventListener("change", render);
+  document.getElementById("s60-chg-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
+  document.getElementById("s60-chg-fly").addEventListener("change", render);
+  document.getElementById("s60-chg-off").addEventListener("change", render);
+  document.getElementById("s60-chg-prev").addEventListener("click", () => shiftMonth(-1));
+  document.getElementById("s60-chg-next").addEventListener("click", () => shiftMonth(1));
+  document.getElementById("s60-month-prev").addEventListener("click", () => shiftMonth(-1));
+  document.getElementById("s60-month-next").addEventListener("click", () => shiftMonth(1));
   document.getElementById("s60-month-fly").addEventListener("change", render);
   function hookFlyNav(kind) {
     const st = flyNav[kind];
@@ -1364,6 +1563,7 @@
 
   if (location.hash === "#month") showPanel("p-month");
   else if (location.hash === "#atm") showPanel("p-atm");
+  else if (location.hash === "#changes") showPanel("p-chg");
   else render();
   let timer;
   window.addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(render, 120); });
