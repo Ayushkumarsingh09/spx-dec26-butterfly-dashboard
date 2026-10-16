@@ -505,7 +505,7 @@
               <button class="fx-reset" id="s60-atm-full" type="button" aria-pressed="false">Full screen</button>
             </div>
           </div>
-          <p class="fx-note">Implied vol and premium are at each strike relative to that session’s ATM. A fly of width 100 at ATM −200 is long ATM −300, short two ATM −200, and long ATM −100. Fly premium is that package price, taken from the quoted premium. Fly IV is the average of the wing vols minus the body. Widths of 50, 25, and 10 keep the same body, interpolate the wing vol between the quoted strikes, and reprice each leg. The line under a level is the change from the previous session: green is an increase, red is a decrease.</p>
+          <p class="fx-note">Spot is the underlying. ATM vol is the implied vol at the ATM strike. Skew and kurtosis use those same strikes. ATM −100 skew is the ATM −100 vol minus ATM vol, and ATM +100 skew is ATM vol minus the ATM +100 vol. ATM ±100 risk reversal is the ATM −100 vol minus the ATM +100 vol. ATM ±100 kurtosis is the ATM −100 vol plus the ATM +100 vol, minus twice ATM vol. The same distances run out to ATM ±900. Implied vol and premium are at each strike relative to that session’s ATM. A fly of width 100 at ATM −200 is long ATM −300, short two ATM −200, and long ATM −100. Fly premium is that package price, taken from the quoted premium. Fly IV is the average of the wing vols minus the body. Widths of 50, 25, and 10 keep the same body, interpolate the wing vol between the quoted strikes, and reprice each leg. The line under a level is the change from the previous session: green is an increase, red is a decrease.</p>
           <div class="fx-detail-wrap s60-month-wrap" id="s60-atm-table-wrap">
             <table class="fx-tbl s60-month-tbl" id="s60-atm-tbl"><thead></thead><tbody></tbody></table>
           </div>
@@ -524,7 +524,39 @@
               </select>
             </div>
           </div>
-          <p class="fx-note">One point per session in the selected month. Lines are the level. The change charts are the move from the previous session.</p>
+          <p class="fx-note">One point per session in the selected month. Lines are the level. The change charts are the move from the previous session. Spot and ATM vol are the strike-ATM measures. Skew and kurtosis follow the offsets that are turned on.</p>
+          <div class="s60-block">
+            <h3>Spot</h3>
+            <div class="fx-legend" id="lg-a-spot"></div>
+            <div class="s60-chart fx-chart" id="ch-a-spot"></div>
+            <h3>Spot change</h3>
+            <div class="fx-legend" id="lg-a-spotchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-spotchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>ATM vol</h3>
+            <div class="fx-legend" id="lg-a-vol"></div>
+            <div class="s60-chart fx-chart" id="ch-a-vol"></div>
+            <h3>ATM vol change</h3>
+            <div class="fx-legend" id="lg-a-volchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-volchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Skew</h3>
+            <div class="fx-legend" id="lg-a-skew"></div>
+            <div class="s60-chart fx-chart" id="ch-a-skew"></div>
+            <h3>Skew change</h3>
+            <div class="fx-legend" id="lg-a-skewchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-skewchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Kurtosis</h3>
+            <div class="fx-legend" id="lg-a-kurt"></div>
+            <div class="s60-chart fx-chart" id="ch-a-kurt"></div>
+            <h3>Kurtosis change</h3>
+            <div class="fx-legend" id="lg-a-kurtchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-kurtchg"></div>
+          </div>
           <div class="s60-block">
             <h3>Implied vol</h3>
             <div class="fx-legend" id="lg-a-iv"></div>
@@ -559,7 +591,7 @@
           </div>
           <div class="s60-block">
             <h3>Curves</h3>
-            <p class="fx-note">Turn any offset on or off. The choice applies to every chart above, so a combination can be checked on its own.</p>
+            <p class="fx-note">Turn any offset on or off. The choice applies to the skew, kurtosis, implied vol, premium, and fly charts, so a combination can be checked on its own.</p>
             <div class="s60-toggles" id="s60-atm-toggles"></div>
           </div>
         </div>

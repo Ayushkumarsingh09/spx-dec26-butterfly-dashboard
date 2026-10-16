@@ -1121,8 +1121,25 @@
     return off > 0 ? "ATM +" + off : "ATM −" + Math.abs(off);
   }
 
+  const STRIKE_DIST = SX.filter((off) => off > 0);
+  function strikeAtmVol(day) { return siv(day, 0); }
+  function strikeRr(day, k) { return siv(day, -k) - siv(day, k); }
+  function strikePutSkew(day, k) { return siv(day, -k) - siv(day, 0); }
+  function strikeCallSkew(day, k) { return siv(day, 0) - siv(day, k); }
+  function strikeKurt(day, k) { return siv(day, -k) + siv(day, k) - 2 * siv(day, 0); }
+
   function atmRows() {
     const rows = [];
+    rows.push({ group: "Market", name: "Spot", fn: (d) => d.u, fmt: f1 });
+    rows.push({ group: "Market", name: "ATM vol", fn: strikeAtmVol, fmt: f2, cls: "atm" });
+    STRIKE_DIST.forEach((k) => {
+      rows.push({ group: "Skew", name: "ATM ±" + k + " risk reversal", fn: (d) => strikeRr(d, k), fmt: f2 });
+      rows.push({ group: "Skew", name: offsetName(-k) + " skew", fn: (d) => strikePutSkew(d, k), fmt: f2 });
+      rows.push({ group: "Skew", name: offsetName(k) + " skew", fn: (d) => strikeCallSkew(d, k), fmt: f2 });
+    });
+    STRIKE_DIST.forEach((k) => {
+      rows.push({ group: "Kurtosis", name: "ATM ±" + k + " kurtosis", fn: (d) => strikeKurt(d, k), fmt: f2 });
+    });
     SX.forEach((off) => {
       rows.push({ group: "Implied vol", name: offsetName(off) + " IV", fn: (d) => siv(d, off), fmt: f2, cls: off === 0 ? "atm" : "" });
     });
@@ -1254,6 +1271,28 @@
       });
     };
     const visible = picked.filter((off) => !atmCurveOff.has(off));
+    const on = (off) => visible.indexOf(off) >= 0;
+    const dist = STRIKE_DIST.filter((k) => picked.indexOf(k) >= 0 || picked.indexOf(-k) >= 0);
+    levelChart("ch-a-spot", "lg-a-spot", [{ name: "Spot", color: PAL[0], fn: (d) => d.u }], f1, "Spot");
+    changeChart("ch-a-spotchg", "lg-a-spotchg", [{ name: "Spot", color: PAL[0], fn: (d) => d.u }], f1, "Spot change");
+    levelChart("ch-a-vol", "lg-a-vol", [{ name: "ATM vol", color: PAL[1], fn: strikeAtmVol }], f2, "ATM vol (%)");
+    changeChart("ch-a-volchg", "lg-a-volchg", [{ name: "ATM vol", color: PAL[1], fn: strikeAtmVol }], f2, "ATM vol change");
+    const skew = [];
+    dist.forEach((k) => {
+      if (on(-k) && on(k)) skew.push({ name: "ATM ±" + k + " risk reversal", fn: (d) => strikeRr(d, k) });
+      if (on(-k)) skew.push({ name: offsetName(-k) + " skew", fn: (d) => strikePutSkew(d, k) });
+      if (on(k)) skew.push({ name: offsetName(k) + " skew", fn: (d) => strikeCallSkew(d, k) });
+    });
+    skew.forEach((s, i) => { s.color = FLY_PAL[i % FLY_PAL.length]; });
+    const kurt = dist.filter((k) => on(-k) && on(k)).map((k, i) => ({
+      name: "ATM ±" + k + " kurtosis",
+      color: FLY_PAL[i % FLY_PAL.length],
+      fn: (d) => strikeKurt(d, k)
+    }));
+    levelChart("ch-a-skew", "lg-a-skew", skew, f2, "Skew (vol pts)");
+    changeChart("ch-a-skewchg", "lg-a-skewchg", skew, f2, "Skew change");
+    levelChart("ch-a-kurt", "lg-a-kurt", kurt, f2, "Kurtosis (vol pts)");
+    changeChart("ch-a-kurtchg", "lg-a-kurtchg", kurt, f2, "Kurtosis change");
     const iv = series(siv).filter((s) => visible.some((off) => offsetName(off) === s.name));
     const px = series(prem).filter((s) => visible.some((off) => offsetName(off) === s.name));
     const flyOff = visible.filter((off) => strikeFlyIv(days[0], off) != null);
