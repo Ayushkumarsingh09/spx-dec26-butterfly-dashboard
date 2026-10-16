@@ -1,5 +1,7 @@
 # SPX 18-Dec-26 strike butterfly scenario lab
 
+Live: https://spx-dec26-butterfly-dashboard.vercel.app
+
 Offline dashboard for fixed-strike SPX butterflies on the 18 December 2026 expiry. Move the spot, vol, skew and wing sliders and every chart and table reprices immediately.
 
 Open `index.html` in a browser. Market data is bundled in `js/data.js`, so the page does not need a server and does not send anything off the machine.
