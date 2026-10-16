@@ -285,11 +285,32 @@
     const high = ladderAt(day, off + flyWidth, "siv");
     return (low + high) / 2 - mid;
   }
+  function erfc(x) {
+    const z = Math.abs(x);
+    const t = 1 / (1 + 0.5 * z);
+    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  const normCdf = (x) => 0.5 * erfc(-x / Math.SQRT2);
+  function black76(type, F, K, sigma, T) {
+    const sT = sigma * Math.sqrt(T);
+    const d1 = (Math.log(F / K) + 0.5 * sT * sT) / sT;
+    if (type === "put") return K * normCdf(sT - d1) - F * normCdf(-d1);
+    return F * normCdf(d1) - K * normCdf(d1 - sT);
+  }
+  function legPremium(day, off) {
+    const i = SX.indexOf(off);
+    if (i >= 0) return day.sp[i];
+    const ivPct = ladderAt(day, off, "siv");
+    if (ivPct == null || !(day.atm + off > 0)) return null;
+    return black76(off < 0 ? "put" : "call", day.u, day.atm + off, ivPct / 100, 60 / 365);
+  }
   function strikeFlyPx(day, off) {
     if (!wingsInside(off)) return null;
-    const low = ladderAt(day, off - flyWidth, "sp");
-    const mid = ladderAt(day, off, "sp");
-    const high = ladderAt(day, off + flyWidth, "sp");
+    const low = legPremium(day, off - flyWidth);
+    const mid = legPremium(day, off);
+    const high = legPremium(day, off + flyWidth);
+    if (low == null || mid == null || high == null) return null;
     return low + high - 2 * mid;
   }
   const atmCurveOff = new Set();
@@ -992,7 +1013,7 @@
 
   function flyPx(day, x) {
     const i = DX.indexOf(x);
-    return (day.dp[i - 1] + day.dp[i + 1]) / 2 - day.dp[i];
+    return day.dp[i - 1] + day.dp[i + 1] - 2 * day.dp[i];
   }
 
   function monthRows() {

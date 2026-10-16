@@ -504,7 +504,7 @@
               </select>
             </div>
           </div>
-          <p class="fx-note">Implied vol and premium are at each strike relative to that session’s ATM. A fly of width 100 at ATM −200 is long ATM −300, short two ATM −200, and long ATM −100. Fly premium is that package price. Fly IV is the same wings measured in vol: the average of the two wings minus the body. Widths of 50, 25, and 10 use a straight line between the 100-point strikes. The line under a level is the change from the previous session: green is an increase, red is a decrease.</p>
+          <p class="fx-note">Implied vol and premium are at each strike relative to that session’s ATM. A fly of width 100 at ATM −200 is long ATM −300, short two ATM −200, and long ATM −100. Fly premium is that package price, taken from the quoted premium. Fly IV is the average of the wing vols minus the body. Widths of 50, 25, and 10 keep the same body, interpolate the wing vol between the quoted strikes, and reprice each leg. The line under a level is the change from the previous session: green is an increase, red is a decrease.</p>
           <div class="fx-detail-wrap s60-month-wrap">
             <table class="fx-tbl s60-month-tbl" id="s60-atm-tbl"><thead></thead><tbody></tbody></table>
           </div>
