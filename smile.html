@@ -495,9 +495,16 @@
             <div class="s60-toolbar">
               <label class="s60-label" for="s60-atm-month">Month</label>
               <select id="s60-atm-month" class="s60-select s60-date" aria-label="Month"></select>
+              <label class="s60-label" for="s60-fly-width">Fly width</label>
+              <select id="s60-fly-width" class="s60-select" aria-label="Fly width">
+                <option value="100" selected>100</option>
+                <option value="50">50</option>
+                <option value="25">25</option>
+                <option value="10">10</option>
+              </select>
             </div>
           </div>
-          <p class="fx-note">Implied vol, premium, fly IV, and fly premium at each strike relative to that session’s ATM, from ATM −900 to ATM +900 in steps of 100. Fly IV is the local butterfly on implied vol, and fly premium is the same butterfly on the premium. The first line is the level. The line under it is the change from the previous session: green is an increase, red is a decrease.</p>
+          <p class="fx-note">Implied vol and premium are at each strike relative to that session’s ATM. A fly of width 100 at ATM −200 is long ATM −300, short two ATM −200, and long ATM −100. Fly premium is that package price. Fly IV is the same wings measured in vol: the average of the two wings minus the body. Widths of 50, 25, and 10 use a straight line between the 100-point strikes. The line under a level is the change from the previous session: green is an increase, red is a decrease.</p>
           <div class="fx-detail-wrap s60-month-wrap">
             <table class="fx-tbl s60-month-tbl" id="s60-atm-tbl"><thead></thead><tbody></tbody></table>
           </div>
@@ -611,6 +618,13 @@
                 <select id="s60-chg-off" class="s60-select" aria-label="ATM offset flies">
                   <option value="near">ATM, ±100 and ±200</option>
                   <option value="all">All offsets</option>
+                </select>
+                <label class="s60-label" for="s60-chg-width">Fly width</label>
+                <select id="s60-chg-width" class="s60-select" aria-label="Fly width">
+                  <option value="100" selected>100</option>
+                  <option value="50">50</option>
+                  <option value="25">25</option>
+                  <option value="10">10</option>
                 </select>
               </div>
             </div>

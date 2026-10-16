@@ -263,14 +263,35 @@
     for (let i = 1; i < SX.length - 1; i++) out.push({ x: SX[i], y: (day.siv[i - 1] + day.siv[i + 1]) / 2 - day.siv[i] });
     return out;
   }
-  function strikeFly(day, off, key) {
-    const i = SX.indexOf(off);
-    if (i <= 0 || i >= SX.length - 1) return null;
-    const wing = day[key];
-    return (wing[i - 1] + wing[i + 1]) / 2 - wing[i];
+  let flyWidth = 100;
+  function ladderAt(day, off, key) {
+    const xs = SX;
+    const ys = day[key];
+    if (off < xs[0] || off > xs[xs.length - 1]) return null;
+    let hi = 1;
+    while (hi < xs.length && xs[hi] < off) hi++;
+    const lo = hi - 1;
+    const span = xs[hi] - xs[lo];
+    const t = span === 0 ? 0 : (off - xs[lo]) / span;
+    return ys[lo] + t * (ys[hi] - ys[lo]);
   }
-  function strikeFlyIv(day, off) { return strikeFly(day, off, "siv"); }
-  function strikeFlyPx(day, off) { return strikeFly(day, off, "sp"); }
+  function wingsInside(center) {
+    return center - flyWidth >= SX[0] && center + flyWidth <= SX[SX.length - 1];
+  }
+  function strikeFlyIv(day, off) {
+    if (!wingsInside(off)) return null;
+    const low = ladderAt(day, off - flyWidth, "siv");
+    const mid = ladderAt(day, off, "siv");
+    const high = ladderAt(day, off + flyWidth, "siv");
+    return (low + high) / 2 - mid;
+  }
+  function strikeFlyPx(day, off) {
+    if (!wingsInside(off)) return null;
+    const low = ladderAt(day, off - flyWidth, "sp");
+    const mid = ladderAt(day, off, "sp");
+    const high = ladderAt(day, off + flyWidth, "sp");
+    return low + high - 2 * mid;
+  }
   const atmCurveOff = new Set();
   const chgOff = new Set();
   function sideKeep(x, side, atm) {
@@ -1158,7 +1179,15 @@
     levelChart("ch-m-fpx", "lg-m-fpx", flySeries(flyPx), f2, "Fly premium");
   }
 
+  function syncFlyWidth() {
+    ["s60-fly-width", "s60-chg-width"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = String(flyWidth);
+    });
+  }
+
   function renderAtm() {
+    syncFlyWidth();
     const days = ensureMonth("s60-atm-month");
     paintDayTable(document.getElementById("s60-atm-tbl"), days, atmRows());
     const cats = days.map((d) => d.d);
@@ -1326,6 +1355,7 @@
   }
 
   function renderChanges() {
+    syncFlyWidth();
     const days = ensureMonth("s60-chg-month");
     syncMonthButtons();
     const cuts = [-200, -100, 100, 200];
@@ -1486,6 +1516,9 @@
   document.getElementById("s60-chg-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
   document.getElementById("s60-chg-fly").addEventListener("change", render);
   document.getElementById("s60-chg-off").addEventListener("change", render);
+  const setFlyWidth = (ev) => { flyWidth = Number(ev.target.value); render(); };
+  document.getElementById("s60-fly-width").addEventListener("change", setFlyWidth);
+  document.getElementById("s60-chg-width").addEventListener("change", setFlyWidth);
   document.getElementById("s60-chg-prev").addEventListener("click", () => shiftMonth(-1));
   document.getElementById("s60-chg-next").addEventListener("click", () => shiftMonth(1));
   document.getElementById("s60-month-prev").addEventListener("click", () => shiftMonth(-1));
