@@ -106,9 +106,21 @@ body.s60-page, body.s60-page #dash-root { background: #fff; color: #31333f; }
 .s60-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
 .s60-btn {
   font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 8px;
-  border: 1px solid #d6d6d8; background: #fff; color: #31333f; cursor: default;
+  border: 1px solid #d6d6d8; background: #fff; color: #31333f; cursor: pointer;
 }
-.s60-btn:disabled { color: #b0b0b5; background: #f8f8f9; }
+.s60-btn:disabled { color: #b0b0b5; background: #f8f8f9; cursor: default; }
+.s60-filter, .s60-select {
+  font: inherit; font-size: 14px; border: 0; background: transparent; color: #31333f; width: 100%;
+}
+.s60-filter { margin-top: 6px; background: #f0f2f6; border-radius: 8px; padding: 8px 10px; box-sizing: border-box; }
+.s60-list { display: flex; flex-wrap: wrap; gap: 4px; max-height: 132px; overflow: auto; margin-top: 6px; }
+.s60-list button {
+  font: inherit; font-size: 12px; border: 1px solid #e4e4e7; background: #fff; border-radius: 6px;
+  padding: 2px 8px; cursor: pointer; color: #31333f;
+}
+.s60-list button.on { background: #ff4b4b; color: #fff; border-color: #ff4b4b; }
+.s60-chip button { border: 0; background: transparent; color: #fff; cursor: pointer; font: inherit; padding: 0 0 0 4px; }
+.s60 .fx-head h1 { font-family: "Source Sans 3", "Segoe UI", sans-serif; font-weight: 700; font-size: 34px; color: #262730; }
 .s60-controls { display: grid; grid-template-columns: 1.6fr 0.8fr 0.7fr; gap: 16px; }
 @media (max-width: 800px) { .s60-controls { grid-template-columns: 1fr; } }
 .s60-label { font-size: 14px; margin-bottom: 4px; color: #31333f; }

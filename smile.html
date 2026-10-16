@@ -21,23 +21,30 @@
       </header>
 
       <div class="s60-toolbar">
-        <button class="s60-btn" type="button" disabled>← Shift Window Prev</button>
-        <button class="s60-btn" type="button" disabled>Shift Window Next →</button>
-        <button class="s60-btn" type="button" disabled>＋ Add Next Day</button>
+        <button class="s60-btn" id="s60-prev" type="button">← Shift Window Prev</button>
+        <button class="s60-btn" id="s60-next" type="button">Shift Window Next →</button>
+        <button class="s60-btn" id="s60-add" type="button">＋ Add Next Day</button>
       </div>
 
       <div class="s60-controls">
         <div>
           <div class="s60-label">Select Dates</div>
-          <div class="s60-field"><span class="s60-chip">2026-09-25 ×</span><span class="s60-chip">2026-09-28 ×</span></div>
+          <div class="s60-field" id="s60-chips"></div>
+          <input id="s60-filter" class="s60-filter" type="text" placeholder="Filter e.g. 2026-09" aria-label="Filter dates">
+          <div class="s60-list" id="s60-list"></div>
         </div>
         <div>
           <div class="s60-label">IV Type</div>
-          <div class="s60-field"><span class="s60-value">OTM IV</span></div>
+          <div class="s60-field"><select id="s60-iv" class="s60-select" aria-label="IV Type"><option value="otm">OTM IV</option></select></div>
         </div>
         <div>
           <div class="s60-label">View By</div>
-          <div class="s60-field"><span class="s60-value">Delta</span></div>
+          <div class="s60-field">
+            <select id="s60-view" class="s60-select" aria-label="View by">
+              <option value="delta">Delta</option>
+              <option value="strike">Strike</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -54,105 +61,100 @@
 
       <section class="s60-panel on" id="p-daily">
         <h2>60-DTE Smile Comparison</h2>
-        <div class="s60-metrics">
-          <div class="s60-metric"><div class="lbl">2026-09-25 Spot</div><div class="val">7,805.75</div></div>
-          <div class="s60-metric"><div class="lbl">2026-09-28 Spot</div><div class="val">7,746.25</div><div class="s60-delta">↓ -59.50</div></div>
-        </div>
+        <div class="s60-kpis" id="s60-spots"></div>
         <div class="s60-legend" id="lg-daily"></div>
         <div class="s60-chart" id="ch-daily"></div>
-        <h3>Smile Change (ΔIV): 2026-09-28 vs 2026-09-25</h3>
+        <h3 id="s60-chg-title"></h3>
         <div class="s60-chart" id="ch-chg"></div>
         <h3>Smile Metrics</h3>
-        <div class="s60-scroll">
-          <table id="s60-metrics">
-            <thead><tr><th>Delta</th><th>2026-09-25 IV</th><th>2026-09-28 IV</th><th>Δ IV</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <h3>Smile Movement Analysis (2026-09-25 to 2026-09-28)</h3>
-        <p class="s60-note">Call wing flattening. The 5Δ call IV fell 0.07 vol while put-wing IVs rose about 0.5 to 0.65 vol.</p>
+        <div class="s60-scroll"><table id="s60-metrics"><thead></thead><tbody></tbody></table></div>
+        <h3 id="s60-move-title"></h3>
+        <p class="s60-note" id="s60-move"></p>
       </section>
 
       <section class="s60-panel" id="p-hist">
         <h2>Historical Skew &amp; Smile Movement</h2>
-        <p class="s60-note">25Δ implied volatility, put versus call, and the 25Δ risk reversal. 5 Jun 2025 through 28 Sep 2026.</p>
-        <h3>25Δ Implied Volatility (Put vs Call)</h3>
+        <div class="s60-label">Select Delta Level</div>
+        <div class="s60-field" style="max-width:16rem"><select id="s60-hist-delta" class="s60-select"></select></div>
+        <p class="s60-note" id="s60-hist-note"></p>
+        <h3 id="s60-hist-title"></h3>
         <div class="s60-legend" id="lg-hist"></div>
         <div class="s60-chart" id="ch-hist"></div>
-        <h3>25Δ Risk Reversal (Put − Call)</h3>
+        <h3 id="s60-rr-title"></h3>
         <div class="s60-chart" id="ch-rr"></div>
       </section>
 
       <section class="s60-panel" id="p-regime">
         <h2>Volatility Regime Analysis</h2>
-        <div class="s60-kpis">
-          <div class="s60-kpi"><div class="lbl">Date</div><div class="val">2026-09-28</div></div>
-          <div class="s60-kpi"><div class="lbl">60D VIX Futures</div><div class="val">18.25</div></div>
-          <div class="s60-kpi"><div class="lbl">VIX Percentile</div><div class="val">1.1%</div></div>
-          <div class="s60-kpi"><div class="lbl">Regime</div><div class="val">LOW VOL</div></div>
-        </div>
-        <p class="s60-note">Previous day / next day sit on this date in the source lab. The window above is 25 Sep and 28 Sep 2026.</p>
+        <div class="s60-kpis" id="s60-regime"></div>
+        <p class="s60-note">Regime is the selected date’s ATM implied vol ranked against every day in the SNP 60-DTE history. Low is the bottom fifth, high is the top fifth.</p>
       </section>
 
       <section class="s60-panel" id="p-delta">
         <h2>Delta Analysis</h2>
-        <p class="s60-note">The source view compares two chosen deltas on the selected dates. This capture is OTM IV, viewed by delta, for 25 Sep and 28 Sep 2026. The daily smile chart is that comparison across 5Δ through 95Δ.</p>
-        <p class="s60-note">ATM IV moved from 12.88 to 13.33 (+0.44 vol). The largest increase on the smile is at 15Δ put (+0.65). The only decline is the 5Δ call (−0.07).</p>
+        <div class="s60-controls">
+          <div><div class="s60-label">Select Delta 1</div><div class="s60-field"><select id="s60-d1" class="s60-select"></select></div></div>
+          <div><div class="s60-label">Select Delta 2</div><div class="s60-field"><select id="s60-d2" class="s60-select"></select></div></div>
+        </div>
+        <p class="s60-note" id="s60-delta-note"></p>
+        <div class="s60-legend" id="lg-delta"></div>
+        <div class="s60-chart" id="ch-delta"></div>
       </section>
 
       <section class="s60-panel" id="p-struct">
         <h2>Smile Structure</h2>
-        <p class="s60-note">The source lab groups structure into Market &amp; core smile, skew, 5Δ put-wing spreads, 5Δ call-wing spreads, all risk reversals, and all butterflies. From this window:</p>
-        <div class="s60-kpis">
-          <div class="s60-kpi"><div class="lbl">Skew chg — RR</div><div class="val">5.4776%</div><div class="sub up">+0.4548 pts</div></div>
-          <div class="s60-kpi"><div class="lbl">Curvature chg — ATM fly</div><div class="val">2.5729%</div><div class="sub">−0.2386 pts</div></div>
-        </div>
-        <p class="s60-note">RR = IV(Put ATM−400) − IV(Call ATM+400). ATM fly proxy: (IV Put−700 + IV Call+700) / 2 − IV ATM.</p>
+        <p class="s60-note">Risk reversal is put IV minus call IV at the same delta. The fly is (lower + upper) / 2 − centre, in vol points. ATM fly proxy uses the strike ladder: (IV at ATM−700 + IV at ATM+700) / 2 − ATM IV.</p>
+        <div class="s60-scroll"><table id="s60-struct"><thead></thead><tbody></tbody></table></div>
       </section>
 
       <section class="s60-panel" id="p-ts">
         <h2>Metrics Time Series</h2>
-        <p class="s60-note">Spot over the dates in the historical window. The source control picks any structural metric from the smile-structure set; spot is the series loaded in this capture.</p>
-        <h3>Time Series: Spot</h3>
+        <div class="s60-label">Select Metric to Plot</div>
+        <div class="s60-field" style="max-width:22rem"><select id="s60-metric" class="s60-select"></select></div>
+        <h3 id="s60-ts-title"></h3>
         <div class="s60-chart" id="ch-spot"></div>
       </section>
 
       <section class="s60-panel" id="p-fly">
         <h2>Fly Analysis</h2>
-        <div class="s60-kpis">
-          <div class="s60-kpi"><div class="lbl">Spot change (2026-09-25 to 2026-09-28)</div><div class="val">7,746.25</div><div class="sub">−59.50 (−0.76%)</div></div>
-          <div class="s60-kpi"><div class="lbl">ATM IV change</div><div class="val">13.33</div><div class="sub up">+0.44</div></div>
+        <div class="s60-label">Fly Side</div>
+        <div class="s60-field" style="max-width:16rem">
+          <select id="s60-fly-side" class="s60-select">
+            <option value="all">Full smile</option>
+            <option value="put">Puts</option>
+            <option value="call">Calls</option>
+          </select>
         </div>
-        <h3>Fly Structure — Full Smile — IV Fly</h3>
+        <div class="s60-kpis" id="s60-fly-kpis"></div>
+        <h3>Fly Structure — IV Fly</h3>
         <div class="s60-legend" id="lg-fly"></div>
         <div class="s60-chart" id="ch-fly"></div>
-        <h3>Fly Value Change: 2026-09-28 vs 2026-09-25</h3>
+        <h3 id="s60-flychg-title"></h3>
         <div class="s60-chart" id="ch-flychg"></div>
         <h3>Fly Change Summary</h3>
-        <p class="s60-note">30Δ put fly decreased by 0.0066 over the selected period.</p>
-        <p class="s60-note">45Δ put fly changed materially (+0.0750), indicating a shift in curvature between 40Δ, 45Δ, and ATM.</p>
-        <p class="s60-note">25Δ call fly became more positive (change: +0.0016).</p>
-        <p class="s60-note">Put-side fly curvature changed substantially more than call-side fly curvature.</p>
+        <div id="s60-fly-notes"></div>
       </section>
 
       <section class="s60-panel" id="p-fix">
         <h2>Fixed Strike Fly Analysis</h2>
-        <p class="s60-note">Strike offsets are ATM-relative (ATM+100 on one date aligns with ATM+100 on the other). Wings run from ATM−800 to ATM+800.</p>
-        <div class="s60-kpis">
-          <div class="s60-kpi"><div class="lbl">Spot change (2026-09-25 → 2026-09-28)</div><div class="val">7,746.25</div><div class="sub">−59.50 (−0.76%)</div></div>
-          <div class="s60-kpi"><div class="lbl">ATM IV change</div><div class="val">13.33%</div><div class="sub up">+0.4416 vol pts</div></div>
-          <div class="s60-kpi"><div class="lbl">Skew chg — RR</div><div class="val">5.4776%</div><div class="sub up">+0.4548 pts</div></div>
-          <div class="s60-kpi"><div class="lbl">Curvature chg — ATM fly</div><div class="val">2.5729%</div><div class="sub">−0.2386 pts</div></div>
+        <p class="s60-note">Strike offsets are ATM-relative, so ATM+100 lines up across dates even when the absolute strike moves.</p>
+        <div class="s60-label">Fly Side</div>
+        <div class="s60-field" style="max-width:16rem">
+          <select id="s60-fix-side" class="s60-select">
+            <option value="all">Put and call</option>
+            <option value="put">Puts</option>
+            <option value="call">Calls</option>
+          </select>
         </div>
+        <div class="s60-kpis" id="s60-fix-kpis"></div>
         <h3>Fly Structure — Put &amp; Call — IV Fly</h3>
         <div class="s60-legend" id="lg-fix"></div>
         <div class="s60-chart" id="ch-fix"></div>
-        <h3>Fly Value Change: 2026-09-28 vs 2026-09-25</h3>
+        <h3 id="s60-fixchg-title"></h3>
         <div class="s60-chart" id="ch-fixchg"></div>
-        <p class="s60-note">RR = IV(Put ATM−400) − IV(Call ATM+400). ATM fly proxy: (IV Put−700 + IV Call+700)/2 − IV ATM (IV-based).</p>
       </section>
     </div>
-    <p class="fx-foot">Rebuilt from the SPX 60-DTE Smile Analysis lab. Window captured: OTM IV by delta, 2026-09-25 and 2026-09-28. <a href="index.html">Butterfly lab</a></p>
+    <p class="fx-foot">SNP 60-DTE ladders, nearest 60 DTE, 16:00 EOD. <a href="index.html">Butterfly lab</a></p>
   </div>
   <script src="js/smile-data.js"></script>
   <script src="js/smile.js"></script>

@@ -2,7 +2,7 @@
 
 Live: https://spx-dec26-butterfly-dashboard.vercel.app
 
-The header links to the [60-DTE smile](smile.html) view, rebuilt from the SPX 60-DTE Smile Analysis lab (OTM IV by delta, 25 Sep and 28 Sep 2026).
+The header links to the [60-DTE smile](smile.html) view. Dates, the window shift, and the charts use the SNP 60-DTE ladder (5 Jun 2025 through 15 Oct 2026).
 
 Offline dashboard for fixed-strike SPX butterflies on the 18 December 2026 expiry. Move the spot, vol, skew and wing sliders and every chart and table reprices immediately.
 

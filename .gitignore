@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 _verify/
 .vercel/
+SNP data/
