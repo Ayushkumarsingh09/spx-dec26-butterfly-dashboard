@@ -482,6 +482,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .s60-hgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
 @media (max-width: 900px) { .s60-hgrid { grid-template-columns: 1fr; } }
 .s60-chart.s60-short { min-height: 220px; }
+.s60-day { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--color-border-line); }
+.s60-day h3 { margin: 0 0 2px; }
+.s60-day .fx-note { margin-top: 0; }
+.s60-day .s60-chart.s60-short { min-height: 0; }
+.s60-day-grid { display: block; }
+.s60-day-grid h4 { margin: 8px 0 4px; font-size: 14px; }
 .s60-chg.fx-up { color: #1f9d55; font-weight: 600; }
 .s60-chg.fx-dn { color: #d64545; font-weight: 600; }
 .fx-detail-wrap thead th {

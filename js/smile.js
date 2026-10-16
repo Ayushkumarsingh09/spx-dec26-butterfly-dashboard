@@ -134,7 +134,8 @@
     if (cfg.zero) { y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
     if (!(y1 > y0)) { y0 -= 1; y1 += 1; }
     const pad = (y1 - y0) * 0.08;
-    const y = d3.scaleLinear([y0 - pad, y1 + pad], [H - 36, 16]).nice();
+    const bottom = cfg.xAngle ? 92 : 36;
+    const y = d3.scaleLinear([y0 - pad, y1 + pad], [H - bottom, 16]).nice();
     const meas = svg.append("g").attr("font-size", 12);
     let lw = 0;
     y.ticks(6).forEach((t) => {
@@ -151,21 +152,24 @@
     g.selectAll("line.gy").data(y.ticks(6)).join("line")
       .attr("x1", L).attr("x2", W - R).attr("y1", (d) => y(d)).attr("y2", (d) => y(d))
       .attr("stroke", "var(--cds-chart-grid)");
-    g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", H - 36).attr("y2", H - 36)
+    g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", H - bottom).attr("y2", H - bottom)
       .attr("stroke", "var(--cds-chart-axis)");
     g.selectAll("text.ty").data(y.ticks(6)).join("text")
       .attr("x", L - 8).attr("y", (d) => y(d)).attr("dy", "0.32em").attr("text-anchor", "end")
       .attr("font-size", 11).attr("fill", "var(--color-fg-muted)").text(cfg.yfmt);
     const xt = cfg.xticks || (cats ? cats.filter((_, i) => i % (cfg.every || 1) === 0) : x.ticks(7));
     g.selectAll("text.tx").data(xt).join("text")
-      .attr("x", (d) => x(d)).attr("y", H - 16).attr("text-anchor", "middle")
-      .attr("font-size", 11).attr("fill", "var(--color-fg-muted)").text((d) => cfg.xfmt ? cfg.xfmt(d) : d);
+      .attr("x", (d) => x(d)).attr("y", H - bottom + 16)
+      .attr("text-anchor", cfg.xAngle ? "start" : "middle")
+      .attr("font-size", 11).attr("fill", "var(--color-fg-muted)")
+      .attr("transform", cfg.xAngle ? (d) => `rotate(${cfg.xAngle},${x(d)},${H - bottom + 16})` : null)
+      .text((d) => cfg.xfmt ? cfg.xfmt(d) : d);
     if (cfg.zero) g.append("line").attr("x1", L).attr("x2", W - R).attr("y1", y(0)).attr("y2", y(0))
       .attr("stroke", "var(--cds-chart-reference)").attr("stroke-dasharray", "3 3");
     if (cfg.marks && cats) {
       cfg.marks.forEach((m) => {
         if (cats.indexOf(m) < 0) return;
-        g.append("line").attr("x1", x(m)).attr("x2", x(m)).attr("y1", 12).attr("y2", H - 36)
+        g.append("line").attr("x1", x(m)).attr("x2", x(m)).attr("y1", 12).attr("y2", H - bottom)
           .attr("stroke", "var(--cds-chart-reference)").attr("stroke-dasharray", "2 3");
       });
     }
@@ -174,7 +178,7 @@
       if (!pts.length) return;
       if (s.bars) {
         const bw = cats
-          ? Math.max(4, x.step() * 0.55)
+          ? Math.min(36, Math.max(4, x.step() * 0.62))
           : Math.max(3, Math.abs(x(pts[Math.min(1, pts.length - 1)].x) - x(pts[0].x)) * 0.55);
         g.append("g").selectAll("rect").data(pts).join("rect")
           .attr("x", (p) => x(p.x) - bw / 2).attr("width", bw)
@@ -196,7 +200,7 @@
     tip.className = "fx-tip";
     el.appendChild(tip);
     const ref = cfg.series[0].pts;
-    svg.append("rect").attr("x", L).attr("y", 0).attr("width", Math.max(0, W - L - R)).attr("height", H - 30).attr("fill", "transparent")
+    svg.append("rect").attr("x", L).attr("y", 0).attr("width", Math.max(0, W - L - R)).attr("height", H - bottom + 6).attr("fill", "transparent")
       .on("pointermove", (ev) => {
         const [mx] = d3.pointer(ev);
         let row;
@@ -218,7 +222,7 @@
           const sw = document.createElement("i");
           sw.style.background = s.color;
           const tx = document.createElement("span");
-          tx.textContent = s.name + ": " + cfg.yfmt(p.y);
+          tx.textContent = (p.label || s.name) + ": " + cfg.yfmt(p.y);
           line.append(sw, tx);
           tip.appendChild(line);
         });
@@ -1380,6 +1384,108 @@
     });
   }
 
+  function sessionTitle(day) {
+    const dt = new Date(day.d + "T12:00:00");
+    const wd = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dt.getDay()];
+    return wd + " " + Number(day.d.slice(8)) + " " + MONTH_NAMES[Number(day.d.slice(5, 7)) - 1];
+  }
+
+  function changeDistances() {
+    const mode = document.getElementById("s60-chg-dist").value;
+    if (mode === "near") return STRIKE_DIST.filter((k) => k <= 200);
+    if (mode === "mid") return STRIKE_DIST.filter((k) => k <= 400);
+    return STRIKE_DIST.slice();
+  }
+
+  function dayBars(el, items, yfmt) {
+    el.replaceChildren();
+    el.classList.remove("fx-fail");
+    const rows = items.filter((it) => it.y != null);
+    const W = Math.max(480, el.clientWidth || 720);
+    const rowH = 22;
+    const H = Math.max(rowH + 8, rows.length * rowH + 8);
+    const svg = d3.select(el).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const vals = rows.map((it) => it.y);
+    let [y0, y1] = d3.extent(vals);
+    y0 = Math.min(y0, 0);
+    y1 = Math.max(y1, 0);
+    if (!(y1 > y0)) { y0 -= 1; y1 += 1; }
+    const pad = (y1 - y0) * 0.06;
+    const labelW = 118;
+    const x = d3.scaleLinear([y0 - pad, y1 + pad], [labelW, W - 78]).nice();
+    const g = svg.append("g");
+    g.append("line").attr("x1", x(0)).attr("x2", x(0)).attr("y1", 2).attr("y2", H - 4)
+      .attr("stroke", "var(--cds-chart-reference)").attr("stroke-dasharray", "3 3");
+    rows.forEach((it, i) => {
+      const y = i * rowH + 2;
+      g.append("text").attr("x", labelW - 8).attr("y", y + 15).attr("text-anchor", "end")
+        .attr("font-size", 12).attr("fill", "var(--color-fg)").text(it.x);
+      const x0 = x(0);
+      const x1 = x(it.y);
+      g.append("rect")
+        .attr("x", Math.min(x0, x1)).attr("y", y + 5)
+        .attr("width", Math.max(1, Math.abs(x1 - x0))).attr("height", 12)
+        .attr("fill", it.y >= 0 ? UP : DN);
+      g.append("text").attr("x", W - 8).attr("y", y + 15).attr("text-anchor", "end")
+        .attr("font-size", 12).attr("fill", it.y >= 0 ? UP : DN).text(signed(it.y, yfmt));
+    });
+  }
+
+  function paintDayChanges(days) {
+    const host = document.getElementById("s60-c-days");
+    host.replaceChildren();
+    const dist = changeDistances();
+    days.forEach((day) => {
+      const prev = sessionBefore(day.d);
+      const sec = document.createElement("section");
+      sec.className = "s60-day";
+      const h = document.createElement("h3");
+      h.textContent = sessionTitle(day);
+      const sub = document.createElement("p");
+      sub.className = "fx-note";
+      sec.append(h, sub);
+      host.appendChild(sec);
+      if (!prev) {
+        sub.textContent = "No previous session.";
+        return;
+      }
+      sub.textContent = "Change from " + sessionTitle(prev) + ".";
+      const grid = document.createElement("div");
+      grid.className = "s60-day-grid";
+      sec.appendChild(grid);
+      const column = (title, wide) => {
+        const col = document.createElement("div");
+        if (wide) col.className = "s60-wide";
+        const h4 = document.createElement("h4");
+        h4.textContent = title;
+        const el = document.createElement("div");
+        el.className = "s60-chart fx-chart s60-short";
+        col.append(h4, el);
+        grid.appendChild(col);
+        return el;
+      };
+      const diff = (fn) => fn(day) - fn(prev);
+      const spotEl = chgOff.has("spot") ? null : column("Spot");
+      const rows = [];
+      if (!chgOff.has("vol")) rows.push({ x: "ATM vol", y: diff(strikeAtmVol) });
+      if (!chgOff.has("skew")) {
+        dist.forEach((k) => {
+          rows.push({ x: "±" + k + " RR", y: diff((d) => strikeRr(d, k)) });
+          rows.push({ x: "−" + k + " skew", y: diff((d) => strikePutSkew(d, k)) });
+          rows.push({ x: "+" + k + " skew", y: diff((d) => strikeCallSkew(d, k)) });
+        });
+      }
+      if (!chgOff.has("kurt")) {
+        dist.forEach((k) => {
+          rows.push({ x: "±" + k + " K", y: diff((d) => strikeKurt(d, k)) });
+        });
+      }
+      const mixEl = rows.length ? column("ATM vol, skew, kurtosis", true) : null;
+      if (spotEl) dayBars(spotEl, [{ x: "Spot", y: day.u - prev.u }], f1);
+      if (mixEl) dayBars(mixEl, rows, f2);
+    });
+  }
+
   function hist(el, days, fn, yfmt, yTitle) {
     chart(el, {
       h: 240,
@@ -1418,40 +1524,29 @@
     syncFlyWidth();
     const days = ensureMonth("s60-chg-month");
     syncMonthButtons();
-    const cuts = [-200, -100, 100, 200];
     const deltaMode = document.getElementById("s60-chg-fly").value;
     const deltas = deltaMode === "all" ? FLY_X.slice() : [10, 25, 50, 75, 90];
     const offMode = document.getElementById("s60-chg-off").value;
     const flyOffs = offMode === "all" ? SX.filter((off) => strikeFlyIv(DAYS[0], off) != null) : [-200, -100, 0, 100, 200];
-    const one = (key, el, fn, fmt, title) => {
-      const block = el.parentElement;
-      block.hidden = chgOff.has(key);
-      if (!chgOff.has(key)) hist(el, days, fn, fmt, title);
-    };
     const grid = (host, items, fmt, title) => {
       const shown = items.filter((it) => !chgOff.has(it.key));
       host.parentElement.hidden = items.length > 0 && shown.length === 0;
       if (shown.length) histGrid(host, days, shown, fmt, title);
       else host.replaceChildren();
     };
-    one("spot", document.getElementById("ch-c-spot"), (d) => d.u, f1, "Spot change");
-    one("atm", document.getElementById("ch-c-atm"), atmIv, f2, "ATM vol change");
-    one("prem", document.getElementById("ch-c-prem"), (d) => prem(d, 0), f2, "ATM premium change");
-    const ivItems = cuts.map((off) => ({ key: "iv:" + off, name: offsetName(off) + " IV", fn: (d) => siv(d, off) }));
-    const pxItems = cuts.map((off) => ({ key: "px:" + off, name: offsetName(off) + " premium", fn: (d) => prem(d, off) }));
+    paintDayChanges(days);
     const flyItems = deltas.map((x) => ({ key: "df:" + x, name: flyName(x) + " fly premium", fn: (d) => flyPx(d, x) }));
     const fivItems = flyOffs.map((off) => ({ key: "fiv:" + off, name: offsetName(off) + " fly IV", fn: (d) => strikeFlyIv(d, off) }));
     const fpxItems = flyOffs.map((off) => ({ key: "fpx:" + off, name: offsetName(off) + " fly premium", fn: (d) => strikeFlyPx(d, off) }));
-    grid(document.getElementById("s60-c-iv"), ivItems, f2, "IV change");
-    grid(document.getElementById("s60-c-px"), pxItems, f2, "Premium change");
     grid(document.getElementById("s60-c-fly"), flyItems, f2, "Fly premium change");
     grid(document.getElementById("s60-c-fiv"), fivItems, f4, "Fly IV change");
     grid(document.getElementById("s60-c-fpx"), fpxItems, f2, "Fly premium change");
     paintToggles(document.getElementById("s60-chg-toggles"), [
       { key: "spot", name: "Spot" },
-      { key: "atm", name: "ATM vol" },
-      { key: "prem", name: "ATM premium" },
-      ...ivItems, ...pxItems, ...flyItems, ...fivItems, ...fpxItems
+      { key: "vol", name: "ATM vol" },
+      { key: "skew", name: "Skew" },
+      { key: "kurt", name: "Kurtosis" },
+      ...flyItems, ...fivItems, ...fpxItems
     ], chgOff);
   }
 
@@ -1574,6 +1669,7 @@
   document.getElementById("s60-atm-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
   document.getElementById("s60-atm-span").addEventListener("change", render);
   document.getElementById("s60-chg-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
+  document.getElementById("s60-chg-dist").addEventListener("change", render);
   document.getElementById("s60-chg-fly").addEventListener("change", render);
   document.getElementById("s60-chg-off").addEventListener("change", render);
   const setFlyWidth = (ev) => { flyWidth = Number(ev.target.value); render(); };

@@ -606,30 +606,16 @@
               <button class="fx-reset" id="s60-chg-next" type="button">Next month</button>
               <label class="s60-label" for="s60-chg-month">Month</label>
               <select id="s60-chg-month" class="s60-select s60-date" aria-label="Month"></select>
+              <label class="s60-label" for="s60-chg-dist">Distances</label>
+              <select id="s60-chg-dist" class="s60-select" aria-label="Skew and kurtosis distances">
+                <option value="near">±100 and ±200</option>
+                <option value="mid">Within ±400</option>
+                <option value="all" selected>All distances</option>
+              </select>
             </div>
           </div>
-          <p class="fx-note">Each bar is one session’s change from the previous session. Green is an increase and red is a decrease. Slide the month to move through the history.</p>
-          <div class="s60-block">
-            <h3>Spot</h3>
-            <div class="s60-chart fx-chart s60-short" id="ch-c-spot"></div>
-          </div>
-          <div class="s60-block">
-            <h3>ATM vol</h3>
-            <div class="s60-chart fx-chart s60-short" id="ch-c-atm"></div>
-          </div>
-          <div class="s60-block">
-            <h3>ATM premium</h3>
-            <div class="s60-chart fx-chart s60-short" id="ch-c-prem"></div>
-          </div>
-          <div class="s60-block">
-            <h3>Strike cutoff implied vol</h3>
-            <p class="fx-note">ATM −200, ATM −100, ATM +100 and ATM +200.</p>
-            <div class="s60-hgrid" id="s60-c-iv"></div>
-          </div>
-          <div class="s60-block">
-            <h3>Strike cutoff premium</h3>
-            <div class="s60-hgrid" id="s60-c-px"></div>
-          </div>
+          <p class="fx-note">Each session is its own group, and the next session follows underneath. Inside a session the order is spot, ATM vol, skew, then kurtosis. Each bar is the change from the previous session. Skew and kurtosis use the ATM strike distances. Green is an increase and red is a decrease.</p>
+          <div id="s60-c-days"></div>
           <div class="s60-block">
             <div class="fx-bar">
               <h3>Fly premium</h3>
@@ -669,7 +655,7 @@
           </div>
           <div class="s60-block">
             <h3>Curves</h3>
-            <p class="fx-note">Turn any histogram on or off to compare a combination.</p>
+            <p class="fx-note">Spot, ATM vol, skew, and kurtosis turn that part off for every day. The fly histograms can be turned off one by one.</p>
             <div class="s60-toggles" id="s60-chg-toggles"></div>
           </div>
         </div>
