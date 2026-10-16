@@ -991,8 +991,8 @@
     return [10, 25, 50, 75, 90];
   }
 
-  function renderMonth() {
-    const sel = document.getElementById("s60-month");
+  function ensureMonth(selectId) {
+    const sel = document.getElementById(selectId);
     if (!sel.options.length) {
       const keys = [];
       DATES.forEach((d) => {
@@ -1009,8 +1009,10 @@
     if (!monthKey) monthKey = sorted()[sorted().length - 1].slice(0, 7);
     if ([...sel.options].some((o) => o.value === monthKey)) sel.value = monthKey;
     else monthKey = sel.value;
-    const days = DAYS.filter((d) => d.d.slice(0, 7) === monthKey);
-    const table = document.getElementById("s60-month-tbl");
+    return DAYS.filter((d) => d.d.slice(0, 7) === monthKey);
+  }
+
+  function paintDayTable(table, days, rows) {
     const th = table.querySelector("thead");
     const tb = table.querySelector("tbody");
     th.replaceChildren();
@@ -1027,7 +1029,7 @@
     });
     th.appendChild(hr);
     let group = "";
-    monthRows().forEach((row) => {
+    rows.forEach((row) => {
       if (row.group !== group) {
         group = row.group;
         const gr = document.createElement("tr");
@@ -1039,6 +1041,7 @@
         tb.appendChild(gr);
       }
       const tr = document.createElement("tr");
+      if (row.cls) tr.className = row.cls;
       const name = document.createElement("td");
       name.textContent = row.name;
       tr.appendChild(name);
@@ -1059,6 +1062,36 @@
       });
       tb.appendChild(tr);
     });
+  }
+
+  function offsetName(off) {
+    if (off === 0) return "ATM";
+    return off > 0 ? "ATM +" + off : "ATM −" + Math.abs(off);
+  }
+
+  function atmRows() {
+    const rows = [];
+    SX.forEach((off) => {
+      rows.push({ group: "Implied vol", name: offsetName(off) + " IV", fn: (d) => siv(d, off), fmt: f2, cls: off === 0 ? "atm" : "" });
+    });
+    SX.forEach((off) => {
+      rows.push({ group: "Premium", name: offsetName(off) + " premium", fn: (d) => prem(d, off), fmt: f2, cls: off === 0 ? "atm" : "" });
+    });
+    return rows;
+  }
+
+  function atmChoice() {
+    const mode = document.getElementById("s60-atm-span").value;
+    if (mode === "near") return SX.filter((x) => Math.abs(x) <= 200);
+    if (mode === "mid") return SX.filter((x) => Math.abs(x) <= 400);
+    if (mode === "put") return SX.filter((x) => x <= 0);
+    if (mode === "call") return SX.filter((x) => x >= 0);
+    return SX.slice();
+  }
+
+  function renderMonth() {
+    const days = ensureMonth("s60-month");
+    paintDayTable(document.getElementById("s60-month-tbl"), days, monthRows());
 
     const cats = days.map((d) => d.d);
     const every = Math.max(1, Math.ceil(days.length / 8));
@@ -1106,6 +1139,46 @@
     levelChart("ch-m-fpx", "lg-m-fpx", flySeries(flyPx), f2, "Fly premium");
   }
 
+  function renderAtm() {
+    const days = ensureMonth("s60-atm-month");
+    paintDayTable(document.getElementById("s60-atm-tbl"), days, atmRows());
+    const cats = days.map((d) => d.d);
+    const every = Math.max(1, Math.ceil(days.length / 8));
+    const xfmt = (d) => d.slice(8);
+    const picked = atmChoice();
+    const series = (read) => picked.map((off, i) => ({
+      name: offsetName(off),
+      color: FLY_PAL[i % FLY_PAL.length],
+      fn: (d) => read(d, off)
+    }));
+    const levelChart = (id, lg, items, yfmt, yTitle) => {
+      legend(lg, items.map((s) => ({ name: s.name, color: s.color })));
+      chart(document.getElementById(id), {
+        series: items.map((s) => ({ name: s.name, color: s.color, pts: days.map((d) => ({ x: d.d, y: s.fn(d) })) })),
+        cats, every, xfmt, yfmt, yTitle
+      });
+    };
+    const changeChart = (id, lg, items, yfmt, yTitle) => {
+      legend(lg, items.map((s) => ({ name: s.name, color: s.color })));
+      chart(document.getElementById(id), {
+        series: items.map((s) => ({
+          name: s.name, color: s.color,
+          pts: days.map((d) => {
+            const prev = sessionBefore(d.d);
+            return { x: d.d, y: prev ? s.fn(d) - s.fn(prev) : null };
+          })
+        })),
+        cats, every, xfmt, yfmt: (v) => signed(v, yfmt), zero: true, yTitle
+      });
+    };
+    const iv = series(siv);
+    const px = series(prem);
+    levelChart("ch-a-iv", "lg-a-iv", iv, f2, "Implied vol (%)");
+    changeChart("ch-a-ivchg", "lg-a-ivchg", iv, f2, "IV change");
+    levelChart("ch-a-px", "lg-a-px", px, f2, "Premium");
+    changeChart("ch-a-pxchg", "lg-a-pxchg", px, f2, "Premium change");
+  }
+
   function activePanel() {
     return document.querySelector(".s60-panel.on").id;
   }
@@ -1136,16 +1209,50 @@
     if (panel === "p-spr") renderSpr(days);
     if (panel === "p-prem") { renderPrem("delta"); renderPrem("strike"); }
     if (panel === "p-month") renderMonth();
+    if (panel === "p-atm") renderAtm();
+  }
+
+  function showPanel(id) {
+    document.querySelectorAll(".s60-tabs button").forEach((b) => {
+      b.setAttribute("aria-selected", b.dataset.panel === id ? "true" : "false");
+    });
+    document.querySelectorAll(".s60-panel").forEach((p) => p.classList.toggle("on", p.id === id));
+    const pages = {
+      "p-month": { link: "nav-month", hash: "#month", title: "Monthly review", doc: "SPX monthly review" },
+      "p-atm": { link: "nav-atm", hash: "#atm", title: "ATM offsets", doc: "SPX ATM offsets" }
+    };
+    ["nav-month", "nav-atm", "nav-smile"].forEach((nid) => document.getElementById(nid).removeAttribute("aria-current"));
+    const spec = pages[id];
+    if (spec) {
+      document.getElementById(spec.link).setAttribute("aria-current", "page");
+      document.querySelector(".fx-brand h1").textContent = spec.title;
+      document.title = spec.doc;
+      if (location.hash !== spec.hash) history.replaceState(null, "", spec.hash);
+    } else {
+      document.getElementById("nav-smile").setAttribute("aria-current", "page");
+      document.querySelector(".fx-brand h1").textContent = "60-DTE smile";
+      document.title = "SPX 60-DTE Smile Analysis";
+      if (location.hash === "#month" || location.hash === "#atm") {
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+    }
+    render();
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".s60-tabs button").forEach((b) => b.setAttribute("aria-selected", "false"));
-      document.querySelectorAll(".s60-panel").forEach((p) => p.classList.remove("on"));
-      btn.setAttribute("aria-selected", "true");
-      document.getElementById(btn.dataset.panel).classList.add("on");
-      render();
-    });
+    btn.addEventListener("click", () => showPanel(btn.dataset.panel));
+  });
+  document.getElementById("nav-month").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    showPanel("p-month");
+  });
+  document.getElementById("nav-atm").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    showPanel("p-atm");
+  });
+  document.getElementById("nav-smile").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    showPanel("p-daily");
   });
 
   document.getElementById("s60-prev").addEventListener("click", () => {
@@ -1182,6 +1289,8 @@
   document.getElementById("s60-cat").addEventListener("change", () => { syncMetrics(); render(); });
   document.getElementById("s60-reg-date").addEventListener("change", (ev) => { regimeDate = ev.target.value; render(); });
   document.getElementById("s60-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
+  document.getElementById("s60-atm-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
+  document.getElementById("s60-atm-span").addEventListener("change", render);
   document.getElementById("s60-month-fly").addEventListener("change", render);
   function hookFlyNav(kind) {
     const st = flyNav[kind];
@@ -1253,7 +1362,9 @@
   fillSelect("s60-cat", ["Market & core", "Skew", "Risk reversals", "Butterflies", "Put spreads", "Call spreads"].map((c) => [c, c]), "Market & core");
   syncMetrics();
 
-  render();
+  if (location.hash === "#month") showPanel("p-month");
+  else if (location.hash === "#atm") showPanel("p-atm");
+  else render();
   let timer;
   window.addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(render, 120); });
 })();

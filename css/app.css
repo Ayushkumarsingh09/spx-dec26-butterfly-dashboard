@@ -467,6 +467,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background: color-mix(in srgb, var(--color-fg) 7%, var(--color-panel));
 }
 .s60-chg { font-size: 0.75rem; line-height: 1.25; color: var(--color-fg-muted); }
+.s60-chg.fx-up { color: #1f9d55; font-weight: 600; }
+.s60-chg.fx-dn { color: #d64545; font-weight: 600; }
 .fx-detail-wrap thead th {
   position: sticky;
   top: 0;

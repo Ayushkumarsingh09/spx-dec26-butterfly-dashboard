@@ -17,8 +17,10 @@
             <h1>60-DTE smile</h1>
           </div>
           <nav class="fx-nav" aria-label="Dashboards">
+            <a href="smile.html#month" id="nav-month">Monthly review</a>
+            <a href="smile.html#atm" id="nav-atm">ATM offsets</a>
             <a href="index.html">Butterfly lab</a>
-            <a href="smile.html" aria-current="page">60-DTE smile</a>
+            <a href="smile.html" id="nav-smile" aria-current="page">60-DTE smile</a>
           </nav>
         </div>
         <p class="fx-take" id="s60-take"></p>
@@ -57,6 +59,8 @@
       </section>
 
       <div class="s60-tabs" role="tablist">
+        <button type="button" role="tab" data-panel="p-month" aria-selected="false">Monthly review</button>
+        <button type="button" role="tab" data-panel="p-atm" aria-selected="false">ATM offsets</button>
         <button type="button" role="tab" data-panel="p-daily" aria-selected="true">Daily Smile</button>
         <button type="button" role="tab" data-panel="p-hist" aria-selected="false">Historical Smile</button>
         <button type="button" role="tab" data-panel="p-regime" aria-selected="false">Volatility Regime Analysis</button>
@@ -67,7 +71,6 @@
         <button type="button" role="tab" data-panel="p-fix" aria-selected="false">Fixed Strike Fly Analysis</button>
         <button type="button" role="tab" data-panel="p-spr" aria-selected="false">Fixed Strike Spreads</button>
         <button type="button" role="tab" data-panel="p-prem" aria-selected="false">Premiums</button>
-        <button type="button" role="tab" data-panel="p-month" aria-selected="false">Monthly review</button>
       </div>
 
       <section class="s60-panel on" id="p-daily">
@@ -477,6 +480,54 @@
             <h3>Fly premium</h3>
             <div class="fx-legend" id="lg-m-fpx"></div>
             <div class="s60-chart fx-chart" id="ch-m-fpx"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="s60-panel" id="p-atm">
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>ATM offsets</h2>
+            <div class="s60-toolbar">
+              <label class="s60-label" for="s60-atm-month">Month</label>
+              <select id="s60-atm-month" class="s60-select s60-date" aria-label="Month"></select>
+            </div>
+          </div>
+          <p class="fx-note">Implied vol and premium at each strike relative to that session’s ATM, from ATM −900 to ATM +900 in steps of 100. The first line is the level. The line under it is the change from the previous session: green is an increase, red is a decrease.</p>
+          <div class="fx-detail-wrap s60-month-wrap">
+            <table class="fx-tbl s60-month-tbl" id="s60-atm-tbl"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>ATM offset charts</h2>
+            <div class="s60-toolbar">
+              <label class="s60-label" for="s60-atm-span">Offsets</label>
+              <select id="s60-atm-span" class="s60-select" aria-label="Offsets to plot">
+                <option value="all">All offsets</option>
+                <option value="near">ATM, ±100 and ±200</option>
+                <option value="mid">Within ±400</option>
+                <option value="put">ATM and below</option>
+                <option value="call">ATM and above</option>
+              </select>
+            </div>
+          </div>
+          <p class="fx-note">One point per session in the selected month. Lines are the level. The change charts are the move from the previous session.</p>
+          <div class="s60-block">
+            <h3>Implied vol</h3>
+            <div class="fx-legend" id="lg-a-iv"></div>
+            <div class="s60-chart fx-chart" id="ch-a-iv"></div>
+            <h3>Implied vol change</h3>
+            <div class="fx-legend" id="lg-a-ivchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-ivchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Premium</h3>
+            <div class="fx-legend" id="lg-a-px"></div>
+            <div class="s60-chart fx-chart" id="ch-a-px"></div>
+            <h3>Premium change</h3>
+            <div class="fx-legend" id="lg-a-pxchg"></div>
+            <div class="s60-chart fx-chart" id="ch-a-pxchg"></div>
           </div>
         </div>
       </section>
