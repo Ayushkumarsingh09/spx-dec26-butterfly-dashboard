@@ -866,6 +866,64 @@
     ]));
   }
 
+  const premNav = {
+    delta: { day: "2026-09-28", a: "2026-09-25", b: "2026-09-28" },
+    strike: { day: "2026-09-28", a: "2026-09-25", b: "2026-09-28" }
+  };
+
+  function renderPrem(kind) {
+    const st = premNav[kind];
+    const delta = kind === "delta";
+    const p = delta
+      ? { date: "s60-pd-date", prev: "s60-pd-prev", next: "s60-pd-next", a: "s60-pc-a", b: "s60-pc-b", ap: "s60-pc-prev", an: "s60-pc-next", lgD: "lg-pd", chD: "ch-pd", lgC: "lg-pc", chC: "ch-pc", chg: "ch-pcchg", title: "s60-pcchg-title", tbl: "s60-pc-tbl" }
+      : { date: "s60-sd-date", prev: "s60-sd-prev", next: "s60-sd-next", a: "s60-sc-a", b: "s60-sc-b", ap: "s60-sc-prev", an: "s60-sc-next", lgD: "lg-sd", chD: "ch-sd", lgC: "lg-sc", chC: "ch-sc", chg: "ch-scchg", title: "s60-scchg-title", tbl: "s60-sc-tbl" };
+    st.day = ensureDates(p.date, st.day);
+    st.a = ensureDates(p.a, st.a);
+    st.b = ensureDates(p.b, st.b);
+    document.getElementById(p.prev).disabled = DATES.indexOf(st.day) <= 0;
+    document.getElementById(p.next).disabled = DATES.indexOf(st.day) >= DATES.length - 1;
+    const ia = DATES.indexOf(st.a);
+    const ib = DATES.indexOf(st.b);
+    document.getElementById(p.ap).disabled = ia <= 0 || ib <= 0;
+    document.getElementById(p.an).disabled = ia >= DATES.length - 1 || ib >= DATES.length - 1;
+    const curve = (day) => delta
+      ? DX.map((x, i) => ({ x, y: day.dp[i] }))
+      : SX.map((x, i) => ({ x, y: day.sp[i] }));
+    const xfmt = delta ? deltaName : strikeName;
+    const yfmt = (v) => d3.format(",.2f")(v);
+    const one = curve(BY.get(st.day));
+    legend(p.lgD, [{ name: st.day, color: PAL[0] }]);
+    chart(document.getElementById(p.chD), {
+      series: [{ name: st.day, color: PAL[0], pts: one }],
+      cats: one.map((pt) => pt.x), every: delta ? 2 : 2, xfmt, yfmt, yTitle: "Premium (pts)"
+    });
+    const pa = curve(BY.get(st.a));
+    const pb = curve(BY.get(st.b));
+    const cats = pa.map((pt) => pt.x);
+    legend(p.lgC, [{ name: st.a, color: PAL[0] }, { name: st.b, color: PAL[1] }]);
+    chart(document.getElementById(p.chC), {
+      series: [
+        { name: st.a, color: PAL[0], pts: pa },
+        { name: st.b, color: PAL[1], pts: pb }
+      ],
+      cats, every: 2, xfmt, yfmt, yTitle: "Premium (pts)"
+    });
+    document.getElementById(p.title).textContent = `Premium change: ${st.b} vs ${st.a}`;
+    chart(document.getElementById(p.chg), {
+      series: [{ name: "Change", color: UP, bars: true, pts: pa.map((pt, i) => barPt(pt.x, pb[i].y - pt.y)) }],
+      cats, every: 2, xfmt, yfmt: (v) => signed(v, f2), zero: true, yTitle: "Change (pts)"
+    });
+    paint(document.getElementById(p.tbl), [delta ? "Delta" : "Offset", st.a, st.b, "B − A"], cats.map((x, i) => {
+      const diff = pb[i].y - pa[i].y;
+      return [
+        { t: xfmt(x) },
+        { t: yfmt(pa[i].y) },
+        { t: yfmt(pb[i].y) },
+        { t: signed(diff, f2), cls: cls(diff) }
+      ];
+    }));
+  }
+
   function activePanel() {
     return document.querySelector(".s60-panel.on").id;
   }
@@ -894,6 +952,7 @@
     if (panel === "p-fly") renderFly(days);
     if (panel === "p-fix") renderFix(days);
     if (panel === "p-spr") renderSpr(days);
+    if (panel === "p-prem") { renderPrem("delta"); renderPrem("strike"); }
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
@@ -961,6 +1020,32 @@
   }
   hookFlyNav("delta");
   hookFlyNav("fix");
+
+  function hookPremNav(kind) {
+    const st = premNav[kind];
+    const p = kind === "delta"
+      ? ["s60-pd-date", "s60-pd-prev", "s60-pd-next", "s60-pc-a", "s60-pc-b", "s60-pc-prev", "s60-pc-next"]
+      : ["s60-sd-date", "s60-sd-prev", "s60-sd-next", "s60-sc-a", "s60-sc-b", "s60-sc-prev", "s60-sc-next"];
+    document.getElementById(p[1]).addEventListener("click", () => { st.day = stepDate(st.day, -1); render(); });
+    document.getElementById(p[2]).addEventListener("click", () => { st.day = stepDate(st.day, 1); render(); });
+    document.getElementById(p[0]).addEventListener("change", (ev) => { st.day = ev.target.value; render(); });
+    document.getElementById(p[3]).addEventListener("change", (ev) => { st.a = ev.target.value; render(); });
+    document.getElementById(p[4]).addEventListener("change", (ev) => { st.b = ev.target.value; render(); });
+    document.getElementById(p[5]).addEventListener("click", () => {
+      if (DATES.indexOf(st.a) <= 0 || DATES.indexOf(st.b) <= 0) return;
+      st.a = stepDate(st.a, -1);
+      st.b = stepDate(st.b, -1);
+      render();
+    });
+    document.getElementById(p[6]).addEventListener("click", () => {
+      if (DATES.indexOf(st.a) >= DATES.length - 1 || DATES.indexOf(st.b) >= DATES.length - 1) return;
+      st.a = stepDate(st.a, 1);
+      st.b = stepDate(st.b, 1);
+      render();
+    });
+  }
+  hookPremNav("delta");
+  hookPremNav("strike");
 
   document.getElementById("s60-reg-prev").addEventListener("click", () => {
     const i = DATES.indexOf(regimeDate);

@@ -66,6 +66,7 @@
         <button type="button" role="tab" data-panel="p-fly" aria-selected="false">Fly Analysis</button>
         <button type="button" role="tab" data-panel="p-fix" aria-selected="false">Fixed Strike Fly Analysis</button>
         <button type="button" role="tab" data-panel="p-spr" aria-selected="false">Fixed Strike Spreads</button>
+        <button type="button" role="tab" data-panel="p-prem" aria-selected="false">Premiums</button>
       </div>
 
       <section class="s60-panel on" id="p-daily">
@@ -327,6 +328,87 @@
           <div class="s60-chart fx-chart" id="ch-sprpchg"></div>
           <h3>Spread Comparison</h3>
           <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-spr-tbl"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="s60-panel" id="p-prem">
+        <div class="fx-card">
+          <h2>Premiums</h2>
+          <p class="fx-note">Option premium in index points from the same 60-DTE ladders. Delta premium is the put on the put wing and the call on the call wing. Strike premium is the listed put or call at that ATM offset.</p>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Delta premium</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-pd-prev" type="button">Previous day</button>
+                <button class="fx-reset" id="s60-pd-next" type="button">Next day</button>
+              </div>
+            </div>
+            <div class="s60-label">Day</div>
+            <select id="s60-pd-date" class="s60-select s60-date" aria-label="Delta premium date"></select>
+            <div class="fx-legend" id="lg-pd"></div>
+            <div class="s60-chart fx-chart" id="ch-pd"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Overlapping delta premiums</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-pc-prev" type="button">Shift both back</button>
+                <button class="fx-reset" id="s60-pc-next" type="button">Shift both forward</button>
+              </div>
+            </div>
+            <div class="s60-controls">
+              <div>
+                <div class="s60-label">Day A</div>
+                <select id="s60-pc-a" class="s60-select" aria-label="Delta premium day A"></select>
+              </div>
+              <div>
+                <div class="s60-label">Day B</div>
+                <select id="s60-pc-b" class="s60-select" aria-label="Delta premium day B"></select>
+              </div>
+            </div>
+            <div class="fx-legend" id="lg-pc"></div>
+            <div class="s60-chart fx-chart" id="ch-pc"></div>
+            <h3 id="s60-pcchg-title">Premium change</h3>
+            <div class="s60-chart fx-chart" id="ch-pcchg"></div>
+            <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-pc-tbl"><thead></thead><tbody></tbody></table></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Strike premium</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-sd-prev" type="button">Previous day</button>
+                <button class="fx-reset" id="s60-sd-next" type="button">Next day</button>
+              </div>
+            </div>
+            <div class="s60-label">Day</div>
+            <select id="s60-sd-date" class="s60-select s60-date" aria-label="Strike premium date"></select>
+            <div class="fx-legend" id="lg-sd"></div>
+            <div class="s60-chart fx-chart" id="ch-sd"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Overlapping strike premiums</h3>
+              <div class="s60-toolbar">
+                <button class="fx-reset" id="s60-sc-prev" type="button">Shift both back</button>
+                <button class="fx-reset" id="s60-sc-next" type="button">Shift both forward</button>
+              </div>
+            </div>
+            <div class="s60-controls">
+              <div>
+                <div class="s60-label">Day A</div>
+                <select id="s60-sc-a" class="s60-select" aria-label="Strike premium day A"></select>
+              </div>
+              <div>
+                <div class="s60-label">Day B</div>
+                <select id="s60-sc-b" class="s60-select" aria-label="Strike premium day B"></select>
+              </div>
+            </div>
+            <div class="fx-legend" id="lg-sc"></div>
+            <div class="s60-chart fx-chart" id="ch-sc"></div>
+            <h3 id="s60-scchg-title">Premium change</h3>
+            <div class="s60-chart fx-chart" id="ch-scchg"></div>
+            <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-sc-tbl"><thead></thead><tbody></tbody></table></div>
+          </div>
         </div>
       </section>
     </div>

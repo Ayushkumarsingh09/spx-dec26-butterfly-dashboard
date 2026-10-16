@@ -53,6 +53,7 @@ def main():
             continue
         by_delta = {delta_key(r): r for r in item["rows"]}
         div = []
+        dprem = []
         ok = True
         for spec in DELTA_SPEC:
             row = by_delta.get(spec)
@@ -60,6 +61,7 @@ def main():
                 ok = False
                 break
             div.append(round(row["iv_1"] * 100, 4))
+            dprem.append(round(row["premium_1"], 4))
         if not ok:
             skipped += 1
             continue
@@ -82,6 +84,7 @@ def main():
             "u": round(meta["underlying"], 2),
             "atm": meta["atm_strike"],
             "iv": div,
+            "dp": dprem,
             "siv": siv,
             "sp": sp,
         })
