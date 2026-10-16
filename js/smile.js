@@ -1539,6 +1539,18 @@
   document.getElementById("s60-chg-off").addEventListener("change", render);
   const setFlyWidth = (ev) => { flyWidth = Number(ev.target.value); render(); };
   document.getElementById("s60-fly-width").addEventListener("change", setFlyWidth);
+  const atmTable = document.getElementById("s60-atm-table-wrap");
+  const atmFull = document.getElementById("s60-atm-full");
+  function syncAtmFull() {
+    const on = document.fullscreenElement === atmTable;
+    atmFull.textContent = on ? "Exit full screen" : "Full screen";
+    atmFull.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  atmFull.addEventListener("click", () => {
+    const done = document.fullscreenElement === atmTable ? document.exitFullscreen() : atmTable.requestFullscreen();
+    if (done && done.catch) done.catch(() => {});
+  });
+  document.addEventListener("fullscreenchange", syncAtmFull);
   document.getElementById("s60-chg-width").addEventListener("change", setFlyWidth);
   document.getElementById("s60-chg-prev").addEventListener("click", () => shiftMonth(-1));
   document.getElementById("s60-chg-next").addEventListener("click", () => shiftMonth(1));

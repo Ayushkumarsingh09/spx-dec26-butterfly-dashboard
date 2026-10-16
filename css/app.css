@@ -451,6 +451,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .fx-detail-wrap table { margin: 0; }
 .s60-month-wrap { max-height: 640px; }
+.s60-month-wrap:fullscreen,
+.s60-month-wrap:-webkit-full-screen {
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--color-panel);
+  padding: 16px;
+}
 .s60-month-tbl { border-collapse: separate; border-spacing: 0; min-width: 100%; }
 .s60-month-tbl th:first-child,
 .s60-month-tbl td:first-child {
