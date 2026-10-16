@@ -450,6 +450,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   border-radius: var(--cds-radius);
 }
 .fx-detail-wrap table { margin: 0; }
+.s60-month-wrap { max-height: 640px; }
+.s60-month-tbl { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+.s60-month-tbl th:first-child,
+.s60-month-tbl td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--color-panel);
+  z-index: 2;
+  min-width: 11rem;
+  box-shadow: 1px 0 0 var(--color-border-line);
+}
+.s60-month-wrap thead th:first-child { z-index: 4; }
+.s60-month-tbl tr.s60-grp td {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-fg) 7%, var(--color-panel));
+}
+.s60-chg { font-size: 0.75rem; line-height: 1.25; color: var(--color-fg-muted); }
 .fx-detail-wrap thead th {
   position: sticky;
   top: 0;

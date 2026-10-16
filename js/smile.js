@@ -112,6 +112,7 @@
   }
 
   let regimeDate = BY.has("2026-09-28") ? "2026-09-28" : DATES[DATES.length - 1];
+  let monthKey = "";
 
   function sorted() { return selected.slice().sort(); }
 
@@ -310,6 +311,7 @@
       x.addEventListener("click", () => {
         if (selected.length === 1) return;
         selected = selected.filter((k) => k !== d);
+        followWindow();
         render();
       });
       chip.appendChild(x);
@@ -340,6 +342,7 @@
           if (selected.length === 1) return;
           selected = selected.filter((k) => k !== d);
         } else selected = selected.concat(d);
+        followWindow();
         render();
       });
       list.appendChild(b);
@@ -871,6 +874,19 @@
     strike: { day: "2026-09-28", a: "2026-09-25", b: "2026-09-28" }
   };
 
+  function followWindow() {
+    const days = selected.slice().sort();
+    const first = days[0];
+    const last = days[days.length - 1];
+    [flyNav.delta, flyNav.fix, premNav.delta, premNav.strike].forEach((st) => {
+      st.a = first;
+      st.b = last;
+      st.day = last;
+    });
+    regimeDate = last;
+    monthKey = last.slice(0, 7);
+  }
+
   function renderPrem(kind) {
     const st = premNav[kind];
     const delta = kind === "delta";
@@ -924,6 +940,172 @@
     }));
   }
 
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const FLY_X = DX.filter((x) => x !== DX[0] && x !== DX[DX.length - 1]);
+  const FLY_PAL = ["#1f4e79", "#2e75b6", "#c45911", "#ed7d31", "#548235", "#70ad47", "#7030a0", "#c00000", "#833c0c", "#203864", "#0d7377", "#9a6b2f", "#3d5a80", "#6b2d5b", "#2f5d50", "#8a4b08", "#1f9d55"];
+
+  function monthLabel(key) {
+    const [y, m] = key.split("-");
+    return MONTH_NAMES[Number(m) - 1] + " " + y;
+  }
+
+  function sessionBefore(date) {
+    const i = DATES.indexOf(date);
+    return i > 0 ? BY.get(DATES[i - 1]) : null;
+  }
+
+  function flyIv(day, x) {
+    const i = DX.indexOf(x);
+    return (day.iv[i - 1] + day.iv[i + 1]) / 2 - day.iv[i];
+  }
+
+  function flyPx(day, x) {
+    const i = DX.indexOf(x);
+    return (day.dp[i - 1] + day.dp[i + 1]) / 2 - day.dp[i];
+  }
+
+  function monthRows() {
+    const rows = [];
+    const add = (group, name, fn, fmt) => rows.push({ group, name, fn, fmt });
+    add("Market", "Spot", (d) => d.u, f1);
+    add("Market", "ATM vol", atmIv, f2);
+    add("Skew", "25Δ risk reversal", (d) => rr(d, 25), f2);
+    add("Skew", "10Δ risk reversal", (d) => rr(d, 10), f2);
+    add("Skew", "25Δ put skew", (d) => ivPut(d, 25) - atmIv(d), f2);
+    add("Skew", "25Δ call skew", (d) => atmIv(d) - ivCall(d, 25), f2);
+    add("Skew", "10Δ put skew", (d) => ivPut(d, 10) - atmIv(d), f2);
+    add("Skew", "10Δ call skew", (d) => atmIv(d) - ivCall(d, 10), f2);
+    add("Kurtosis", "25Δ kurtosis", (d) => ivPut(d, 25) + ivCall(d, 25) - 2 * atmIv(d), f2);
+    add("Kurtosis", "10Δ kurtosis", (d) => ivPut(d, 10) + ivCall(d, 10) - 2 * atmIv(d), f2);
+    add("Kurtosis", "Wing kurtosis", (d) => ivPut(d, 10) + ivCall(d, 10) - ivPut(d, 25) - ivCall(d, 25), f2);
+    FLY_X.forEach((x) => add("Fly IV", flyName(x) + " fly IV", (d) => flyIv(d, x), f4));
+    FLY_X.forEach((x) => add("Fly premium", flyName(x) + " fly premium", (d) => flyPx(d, x), f2));
+    return rows;
+  }
+
+  function flyChoice() {
+    const mode = document.getElementById("s60-month-fly").value;
+    if (mode === "put") return FLY_X.filter((x) => x < 50);
+    if (mode === "call") return FLY_X.filter((x) => x > 50);
+    if (mode === "all") return FLY_X.slice();
+    return [10, 25, 50, 75, 90];
+  }
+
+  function renderMonth() {
+    const sel = document.getElementById("s60-month");
+    if (!sel.options.length) {
+      const keys = [];
+      DATES.forEach((d) => {
+        const key = d.slice(0, 7);
+        if (keys[keys.length - 1] !== key) keys.push(key);
+      });
+      keys.forEach((key) => {
+        const o = document.createElement("option");
+        o.value = key;
+        o.textContent = monthLabel(key);
+        sel.appendChild(o);
+      });
+    }
+    if (!monthKey) monthKey = sorted()[sorted().length - 1].slice(0, 7);
+    if ([...sel.options].some((o) => o.value === monthKey)) sel.value = monthKey;
+    else monthKey = sel.value;
+    const days = DAYS.filter((d) => d.d.slice(0, 7) === monthKey);
+    const table = document.getElementById("s60-month-tbl");
+    const th = table.querySelector("thead");
+    const tb = table.querySelector("tbody");
+    th.replaceChildren();
+    tb.replaceChildren();
+    const hr = document.createElement("tr");
+    ["Measure", ...days.map((d) => {
+      const dt = new Date(d.d + "T12:00:00");
+      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dt.getDay()] + " " + d.d.slice(8);
+    })].forEach((label, i) => {
+      const h = document.createElement("th");
+      h.textContent = label;
+      if (i > 0) h.title = days[i - 1].d;
+      hr.appendChild(h);
+    });
+    th.appendChild(hr);
+    let group = "";
+    monthRows().forEach((row) => {
+      if (row.group !== group) {
+        group = row.group;
+        const gr = document.createElement("tr");
+        gr.className = "s60-grp";
+        const gd = document.createElement("td");
+        gd.textContent = group;
+        gr.appendChild(gd);
+        days.forEach(() => gr.appendChild(document.createElement("td")));
+        tb.appendChild(gr);
+      }
+      const tr = document.createElement("tr");
+      const name = document.createElement("td");
+      name.textContent = row.name;
+      tr.appendChild(name);
+      days.forEach((day) => {
+        const td = document.createElement("td");
+        const level = document.createElement("div");
+        level.textContent = row.fmt(row.fn(day));
+        const prev = sessionBefore(day.d);
+        const sub = document.createElement("div");
+        sub.className = "s60-chg";
+        if (prev) {
+          const diff = row.fn(day) - row.fn(prev);
+          sub.textContent = signed(diff, row.fmt);
+          if (cls(diff)) sub.classList.add(cls(diff));
+        } else sub.textContent = "—";
+        td.append(level, sub);
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+
+    const cats = days.map((d) => d.d);
+    const every = Math.max(1, Math.ceil(days.length / 8));
+    const xfmt = (d) => d.slice(8);
+    const levelChart = (id, lg, series, yfmt, yTitle) => {
+      legend(lg, series.map((s) => ({ name: s.name, color: s.color })));
+      chart(document.getElementById(id), {
+        series: series.map((s) => ({ name: s.name, color: s.color, pts: days.map((d) => ({ x: d.d, y: s.fn(d) })) })),
+        cats, every, xfmt, yfmt, yTitle
+      });
+    };
+    const changeChart = (id, fn, yfmt, yTitle) => {
+      chart(document.getElementById(id), {
+        series: [{
+          name: "Change", color: UP, bars: true,
+          pts: days.map((d) => {
+            const prev = sessionBefore(d.d);
+            if (!prev) return { x: d.d, y: null };
+            return barPt(d.d, fn(d) - fn(prev));
+          })
+        }],
+        cats, every, xfmt, yfmt: (v) => signed(v, yfmt), zero: true, yTitle
+      });
+    };
+    levelChart("ch-m-spot", "lg-m-spot", [{ name: "Spot", color: PAL[0], fn: (d) => d.u }], f1, "Spot");
+    changeChart("ch-m-spotchg", (d) => d.u, f1, "Spot change");
+    levelChart("ch-m-atm", "lg-m-atm", [{ name: "ATM vol", color: PAL[1], fn: atmIv }], f2, "ATM vol (%)");
+    changeChart("ch-m-atmchg", atmIv, f2, "ATM vol change");
+    levelChart("ch-m-skew", "lg-m-skew", [
+      { name: "25Δ risk reversal", color: PAL[0], fn: (d) => rr(d, 25) },
+      { name: "10Δ risk reversal", color: PAL[1], fn: (d) => rr(d, 10) },
+      { name: "25Δ put skew", color: PAL[2], fn: (d) => ivPut(d, 25) - atmIv(d) },
+      { name: "25Δ call skew", color: PAL[3], fn: (d) => atmIv(d) - ivCall(d, 25) }
+    ], f2, "Skew (vol pts)");
+    changeChart("ch-m-skewchg", (d) => rr(d, 25), f2, "25Δ RR change");
+    levelChart("ch-m-kurt", "lg-m-kurt", [
+      { name: "25Δ kurtosis", color: PAL[0], fn: (d) => ivPut(d, 25) + ivCall(d, 25) - 2 * atmIv(d) },
+      { name: "10Δ kurtosis", color: PAL[1], fn: (d) => ivPut(d, 10) + ivCall(d, 10) - 2 * atmIv(d) },
+      { name: "Wing kurtosis", color: PAL[2], fn: (d) => ivPut(d, 10) + ivCall(d, 10) - ivPut(d, 25) - ivCall(d, 25) }
+    ], f2, "Kurtosis (vol pts)");
+    changeChart("ch-m-kurtchg", (d) => ivPut(d, 25) + ivCall(d, 25) - 2 * atmIv(d), f2, "25Δ kurtosis change");
+    const picked = flyChoice();
+    const flySeries = (fn) => picked.map((x, i) => ({ name: flyName(x), color: FLY_PAL[i % FLY_PAL.length], fn: (d) => fn(d, x) }));
+    levelChart("ch-m-fly", "lg-m-fly", flySeries(flyIv), f4, "Fly IV");
+    levelChart("ch-m-fpx", "lg-m-fpx", flySeries(flyPx), f2, "Fly premium");
+  }
+
   function activePanel() {
     return document.querySelector(".s60-panel.on").id;
   }
@@ -953,6 +1135,7 @@
     if (panel === "p-fix") renderFix(days);
     if (panel === "p-spr") renderSpr(days);
     if (panel === "p-prem") { renderPrem("delta"); renderPrem("strike"); }
+    if (panel === "p-month") renderMonth();
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
@@ -969,17 +1152,20 @@
     const idx = selected.map((d) => DATES.indexOf(d));
     if (idx.some((i) => i <= 0)) return;
     selected = idx.map((i) => DATES[i - 1]);
+    followWindow();
     render();
   });
   document.getElementById("s60-next").addEventListener("click", () => {
     const idx = selected.map((d) => DATES.indexOf(d));
     if (idx.some((i) => i >= DATES.length - 1)) return;
     selected = idx.map((i) => DATES[i + 1]);
+    followWindow();
     render();
   });
   document.getElementById("s60-add").addEventListener("click", () => {
     const last = Math.max(...selected.map((d) => DATES.indexOf(d)));
     if (last < DATES.length - 1) selected = selected.concat(DATES[last + 1]);
+    followWindow();
     render();
   });
   document.getElementById("s60-filter").addEventListener("input", (ev) => {
@@ -995,6 +1181,8 @@
   });
   document.getElementById("s60-cat").addEventListener("change", () => { syncMetrics(); render(); });
   document.getElementById("s60-reg-date").addEventListener("change", (ev) => { regimeDate = ev.target.value; render(); });
+  document.getElementById("s60-month").addEventListener("change", (ev) => { monthKey = ev.target.value; render(); });
+  document.getElementById("s60-month-fly").addEventListener("change", render);
   function hookFlyNav(kind) {
     const st = flyNav[kind];
     const p = kind === "delta"

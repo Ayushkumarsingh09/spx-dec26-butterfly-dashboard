@@ -67,6 +67,7 @@
         <button type="button" role="tab" data-panel="p-fix" aria-selected="false">Fixed Strike Fly Analysis</button>
         <button type="button" role="tab" data-panel="p-spr" aria-selected="false">Fixed Strike Spreads</button>
         <button type="button" role="tab" data-panel="p-prem" aria-selected="false">Premiums</button>
+        <button type="button" role="tab" data-panel="p-month" aria-selected="false">Monthly review</button>
       </div>
 
       <section class="s60-panel on" id="p-daily">
@@ -408,6 +409,74 @@
             <h3 id="s60-scchg-title">Premium change</h3>
             <div class="s60-chart fx-chart" id="ch-scchg"></div>
             <div class="fx-detail-wrap"><table class="fx-tbl" id="s60-sc-tbl"><thead></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="s60-panel" id="p-month">
+        <div class="fx-card">
+          <div class="fx-bar">
+            <h2>Monthly review</h2>
+            <div class="s60-toolbar">
+              <label class="s60-label" for="s60-month">Month</label>
+              <select id="s60-month" class="s60-select s60-date" aria-label="Month"></select>
+            </div>
+          </div>
+          <p class="fx-note">One column for every session in the selected month. The first line in a cell is the level. The line under it is the change from the previous session. Green is an increase and red is a decrease.</p>
+          <p class="fx-note">Spot is the underlying. ATM vol is 50Δ implied vol. Risk reversal is put IV minus call IV. Put skew is put IV minus ATM, and call skew is ATM minus call IV. Kurtosis is put IV plus call IV minus twice ATM. Wing kurtosis is the 10Δ wings minus the 25Δ wings. Fly IV is the local butterfly: the average of the two neighbouring deltas minus the centre. Fly premium is that same butterfly on the option premium.</p>
+          <div class="fx-detail-wrap s60-month-wrap">
+            <table class="fx-tbl s60-month-tbl" id="s60-month-tbl"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <div class="fx-card">
+          <h2>Month charts</h2>
+          <p class="fx-note">The same month, with one point per session, so each measure can be compared across the days. Lines are the level. Bars are the change from the previous session.</p>
+          <div class="s60-block">
+            <h3>Spot</h3>
+            <div class="fx-legend" id="lg-m-spot"></div>
+            <div class="s60-chart fx-chart" id="ch-m-spot"></div>
+            <h3>Spot change</h3>
+            <div class="s60-chart fx-chart" id="ch-m-spotchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>ATM vol</h3>
+            <div class="fx-legend" id="lg-m-atm"></div>
+            <div class="s60-chart fx-chart" id="ch-m-atm"></div>
+            <h3>ATM vol change</h3>
+            <div class="s60-chart fx-chart" id="ch-m-atmchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Skew</h3>
+            <div class="fx-legend" id="lg-m-skew"></div>
+            <div class="s60-chart fx-chart" id="ch-m-skew"></div>
+            <h3>25Δ risk reversal change</h3>
+            <div class="s60-chart fx-chart" id="ch-m-skewchg"></div>
+          </div>
+          <div class="s60-block">
+            <h3>Kurtosis</h3>
+            <div class="fx-legend" id="lg-m-kurt"></div>
+            <div class="s60-chart fx-chart" id="ch-m-kurt"></div>
+            <h3>25Δ kurtosis change</h3>
+            <div class="s60-chart fx-chart" id="ch-m-kurtchg"></div>
+          </div>
+          <div class="s60-block">
+            <div class="fx-bar">
+              <h3>Fly IV</h3>
+              <div class="s60-toolbar">
+                <label class="s60-label" for="s60-month-fly">Deltas</label>
+                <select id="s60-month-fly" class="s60-select" aria-label="Fly deltas">
+                  <option value="key">10Δ, 25Δ and ATM</option>
+                  <option value="put">Put wing</option>
+                  <option value="call">Call wing</option>
+                  <option value="all">All deltas</option>
+                </select>
+              </div>
+            </div>
+            <div class="fx-legend" id="lg-m-fly"></div>
+            <div class="s60-chart fx-chart" id="ch-m-fly"></div>
+            <h3>Fly premium</h3>
+            <div class="fx-legend" id="lg-m-fpx"></div>
+            <div class="s60-chart fx-chart" id="ch-m-fpx"></div>
           </div>
         </div>
       </section>
