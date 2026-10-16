@@ -1615,22 +1615,6 @@
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
     btn.addEventListener("click", () => showPanel(btn.dataset.panel));
   });
-  document.getElementById("nav-month").addEventListener("click", (ev) => {
-    ev.preventDefault();
-    showPanel("p-month");
-  });
-  document.getElementById("nav-atm").addEventListener("click", (ev) => {
-    ev.preventDefault();
-    showPanel("p-atm");
-  });
-  document.getElementById("nav-changes").addEventListener("click", (ev) => {
-    ev.preventDefault();
-    showPanel("p-chg");
-  });
-  document.getElementById("nav-smile").addEventListener("click", (ev) => {
-    ev.preventDefault();
-    showPanel("p-daily");
-  });
 
   document.getElementById("s60-prev").addEventListener("click", () => {
     const idx = selected.map((d) => DATES.indexOf(d));
