@@ -206,10 +206,11 @@ html, body {
   border-radius: 999px;
   padding: 5px 12px;
   color: var(--color-fg-muted);
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
 }
-.s60-tabs button:hover { color: var(--color-fg); border-color: var(--color-fg-muted); }
 .s60-tabs button[aria-selected="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+.s60-tabs button:disabled { opacity: 1; }
 .s60-panel { display: none; flex-direction: column; gap: var(--cds-gap-md); }
 .s60-panel.on { display: flex; }
 .s60-panel h3 {

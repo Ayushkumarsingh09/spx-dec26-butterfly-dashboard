@@ -1613,8 +1613,15 @@
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
-    btn.addEventListener("click", () => showPanel(btn.dataset.panel));
+    btn.disabled = true;
+    btn.setAttribute("aria-disabled", "true");
   });
+  document.addEventListener("click", (ev) => {
+    const link = ev.target.closest("a");
+    if (!link) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+  }, true);
 
   document.getElementById("s60-prev").addEventListener("click", () => {
     const idx = selected.map((d) => DATES.indexOf(d));
