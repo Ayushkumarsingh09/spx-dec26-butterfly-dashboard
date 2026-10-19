@@ -1761,10 +1761,7 @@
   fillSelect("s60-cat", ["Market & core", "Skew", "Risk reversals", "Butterflies", "Put spreads", "Call spreads"].map((c) => [c, c]), "Market & core");
   syncMetrics();
 
-  if (location.hash === "#month") showPanel("p-month");
-  else if (location.hash === "#atm") showPanel("p-atm");
-  else if (location.hash === "#changes") showPanel("p-chg");
-  else render();
+  showPanel("p-atm");
   let timer;
   window.addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(render, 120); });
 })();

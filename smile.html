@@ -61,9 +61,9 @@
 
       <div class="s60-tabs" role="tablist">
         <button type="button" role="tab" data-panel="p-month" aria-selected="false">Monthly review</button>
-        <button type="button" role="tab" data-panel="p-atm" aria-selected="false">ATM offsets</button>
+        <button type="button" role="tab" data-panel="p-atm" aria-selected="true">ATM offsets</button>
         <button type="button" role="tab" data-panel="p-chg" aria-selected="false">Daily changes</button>
-        <button type="button" role="tab" data-panel="p-daily" aria-selected="true">Daily Smile</button>
+        <button type="button" role="tab" data-panel="p-daily" aria-selected="false">Daily Smile</button>
         <button type="button" role="tab" data-panel="p-hist" aria-selected="false">Historical Smile</button>
         <button type="button" role="tab" data-panel="p-regime" aria-selected="false">Volatility Regime Analysis</button>
         <button type="button" role="tab" data-panel="p-delta" aria-selected="false">Delta Comparison</button>
@@ -75,7 +75,7 @@
         <button type="button" role="tab" data-panel="p-prem" aria-selected="false">Premiums</button>
       </div>
 
-      <section class="s60-panel on" id="p-daily">
+      <section class="s60-panel" id="p-daily">
         <div class="fx-card">
           <h2>60-DTE Smile Comparison</h2>
           <p class="fx-note">OTM implied vol for each selected session. Delta runs 5Δ put to 5Δ call. Strike is the offset from that day’s ATM.</p>
@@ -488,7 +488,7 @@
         </div>
       </section>
 
-      <section class="s60-panel" id="p-atm">
+      <section class="s60-panel on" id="p-atm">
         <div class="fx-card">
           <div class="fx-bar">
             <h2>ATM offsets</h2>
