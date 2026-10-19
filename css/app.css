@@ -111,6 +111,11 @@ html, body {
 }
 .fx-nav a[aria-current="page"],
 .fx-nav span[aria-current="page"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+#nav-atm {
+  pointer-events: auto;
+  cursor: pointer;
+}
+#nav-atm:not([aria-current="page"]):hover { color: var(--color-fg); border-color: var(--color-fg-muted); }
 
 .s60-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
 .s60-controls { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(12rem, 0.7fr) minmax(10rem, 0.5fr); gap: 16px 20px; align-items: start; }
@@ -211,6 +216,8 @@ html, body {
 }
 .s60-tabs button[aria-selected="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
 .s60-tabs button:disabled { opacity: 1; }
+.s60-tabs button[data-panel="p-atm"] { pointer-events: auto; cursor: pointer; }
+.s60-tabs button[data-panel="p-atm"]:not([aria-selected="true"]):hover { color: var(--color-fg); border-color: var(--color-fg-muted); }
 .s60-panel { display: none; flex-direction: column; gap: var(--cds-gap-md); }
 .s60-panel.on { display: flex; }
 .s60-panel h3 {

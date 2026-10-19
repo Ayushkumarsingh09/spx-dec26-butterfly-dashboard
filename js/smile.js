@@ -1613,8 +1613,16 @@
   }
 
   document.querySelectorAll(".s60-tabs button").forEach((btn) => {
+    if (btn.dataset.panel === "p-atm") {
+      btn.addEventListener("click", () => showPanel("p-atm"));
+      return;
+    }
     btn.disabled = true;
     btn.setAttribute("aria-disabled", "true");
+  });
+  document.getElementById("nav-atm").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    showPanel("p-atm");
   });
   document.addEventListener("click", (ev) => {
     const link = ev.target.closest("a");
