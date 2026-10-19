@@ -1,8 +1,10 @@
 # SPX 18-Dec-26 strike butterfly scenario lab
 
-Live: https://spx-dec26-butterfly-dashboard.vercel.app
+The full dashboard, with every section linked, is at https://allfly-mu.vercel.app
 
-The header links to the [60-DTE smile](smile.html) view. Dates, the window shift, and the charts use the SNP 60-DTE ladder (5 Jun 2025 through 15 Oct 2026).
+https://spx-dec26-butterfly-dashboard.vercel.app opens only ATM offsets. The other labels on that site do not open.
+
+Dates, the window shift, and the charts use the SNP 60-DTE ladder (5 Jun 2025 through 15 Oct 2026).
 
 Offline dashboard for fixed-strike SPX butterflies on the 18 December 2026 expiry. Move the spot, vol, skew and wing sliders and every chart and table reprices immediately.
 
